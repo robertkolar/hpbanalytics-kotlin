@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,6 +29,7 @@ public interface ExecutionRepository extends JpaRepository<Execution, Long>, Jpa
             @Param("cutoffDate") LocalDateTime cutoffDate);
 
     @Modifying
+    @Transactional
     @Query("update Execution e set e.trade = null")
     int disassociateAllExecutions();
 }

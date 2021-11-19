@@ -25,5 +25,5 @@ application:
     url: http://data.fixer.io/api
     access-key:
     symbols: EUR,USD,GBP,CHF,AUD,JPY,KRW,HKD,SGD
-    days-back: 5
+    days-back: 3
 
