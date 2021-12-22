@@ -1,6 +1,7 @@
 package com.highpowerbear.hpbanalytics.common;
 
 import com.highpowerbear.hpbanalytics.config.HanSettings;
+import com.ib.client.Types;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -45,5 +46,17 @@ public class HanUtil {
 
     public static String removeWhiteSpaces(String input) {
         return input.replaceAll("\\s", "");
+    }
+
+    public static boolean isDerivative(Types.SecType secType) {
+        switch(secType) {
+            case FUT:
+            case OPT:
+            case FOP:
+            case CFD:
+                return true;
+            default:
+                return false;
+        }
     }
 }

@@ -17,6 +17,7 @@ Ext.define('HanGui.model.Statistics', {
         'winnersProfit',
         'losersLoss',
         'profitLoss',
+        'profitLossTaxReport',
         'cumulProfitLoss'
     ]
 });

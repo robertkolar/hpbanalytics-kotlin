@@ -131,10 +131,17 @@ public class StatisticsService {
             BigDecimal losersLoss = BigDecimal.ZERO;
             BigDecimal bigWinner = BigDecimal.ZERO;
             BigDecimal bigLoser = BigDecimal.ZERO;
-            BigDecimal profitLoss;
+            BigDecimal profitLoss = BigDecimal.ZERO;
+            BigDecimal profitLossTaxReport = BigDecimal.ZERO;
 
             for (Trade trade : tradesClosedForPeriod) {
                 BigDecimal pl = tradeCalculationService.calculatePlPortfolioBaseCloseOnly(trade);
+                profitLoss = profitLoss.add(pl);
+
+                if (HanUtil.isDerivative(trade.getSecType())) {
+                    BigDecimal plTr = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade);
+                    profitLossTaxReport = profitLossTaxReport.add(plTr);
+                }
 
                 if (pl.doubleValue() >= 0) {
                     numWinners++;
@@ -153,7 +160,6 @@ public class StatisticsService {
                 }
             }
             pctWinners = numClosed != 0 ? ((double) numWinners / (double) numClosed) * 100.0 : 0.0;
-            profitLoss = winnersProfit.add(losersLoss);
             cumulProfitLoss = cumulProfitLoss.add(profitLoss);
 
             Statistics s = new Statistics(
@@ -170,6 +176,7 @@ public class StatisticsService {
                     winnersProfit,
                     losersLoss,
                     profitLoss,
+                    profitLossTaxReport,
                     cumulProfitLoss
             );
             stats.add(s);

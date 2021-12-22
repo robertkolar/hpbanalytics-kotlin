@@ -9,7 +9,8 @@ spring:
     url:
     username:
     password:
-    hikari.maximum-pool-size: 7
+    hikari:
+      maximum-pool-size: 7
   jpa:
     generate-ddl: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect

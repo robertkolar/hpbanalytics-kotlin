@@ -92,6 +92,12 @@ Ext.define('HanGui.view.statistics.StatisticsGrid', {
         align: 'right',
         renderer: 'profitLossRenderer'
     }, {
+        text: 'PL TaxRep',
+        width: 100,
+        dataIndex: 'profitLossTaxReport',
+        align: 'right',
+        renderer: 'profitLossRenderer'
+    }, {
         text: 'Cumul PL',
         width: 100,
         dataIndex: 'cumulProfitLoss',

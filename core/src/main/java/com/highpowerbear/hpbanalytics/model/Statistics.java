@@ -24,10 +24,11 @@ public class Statistics implements Serializable {
     private final BigDecimal winnersProfit;
     private final BigDecimal losersLoss;
     private final BigDecimal profitLoss;
+    private final BigDecimal profitLossTaxReport;
     private final BigDecimal cumulProfitLoss;
 
     public Statistics(int id, LocalDateTime periodDate, int numExecs, int numOpened,int numClosed, int numWinners, int numLosers, double pctWinners,
-                      BigDecimal bigWinner, BigDecimal bigLoser, BigDecimal winnersProfit, BigDecimal losersLoss, BigDecimal profitLoss, BigDecimal cumulProfitLoss) {
+                      BigDecimal bigWinner, BigDecimal bigLoser, BigDecimal winnersProfit, BigDecimal losersLoss, BigDecimal profitLoss, BigDecimal profitLossTaxReport, BigDecimal cumulProfitLoss) {
 
         this.id = id;
         this.periodDate = periodDate;
@@ -42,6 +43,7 @@ public class Statistics implements Serializable {
         this.winnersProfit = winnersProfit;
         this.losersLoss = losersLoss;
         this.profitLoss = profitLoss;
+        this.profitLossTaxReport = profitLossTaxReport;
         this.cumulProfitLoss = cumulProfitLoss;
     }
 
@@ -97,6 +99,10 @@ public class Statistics implements Serializable {
         return profitLoss;
     }
 
+    public BigDecimal getProfitLossTaxReport() {
+        return profitLossTaxReport;
+    }
+
     public BigDecimal getCumulProfitLoss() {
         return cumulProfitLoss;
     }
@@ -117,6 +123,7 @@ public class Statistics implements Serializable {
                 ", winnersProfit=" + winnersProfit +
                 ", losersLoss=" + losersLoss +
                 ", profitLoss=" + profitLoss +
+                ", profitLossTaxReport=" + profitLossTaxReport +
                 ", cumulProfitLoss=" + cumulProfitLoss +
                 '}';
     }

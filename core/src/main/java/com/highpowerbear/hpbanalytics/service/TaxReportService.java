@@ -1,5 +1,6 @@
 package com.highpowerbear.hpbanalytics.service;
 
+import com.highpowerbear.hpbanalytics.common.HanUtil;
 import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.database.Execution;
 import com.highpowerbear.hpbanalytics.database.Trade;
@@ -96,7 +97,7 @@ public class TaxReportService {
         BigDecimal sumPl = BigDecimal.ZERO;
 
         for (Trade trade : trades) {
-            if (!isDerivative(trade.getSecType())) {
+            if (!HanUtil.isDerivative(trade.getSecType())) {
                 continue;
             }
 
@@ -279,18 +280,6 @@ public class TaxReportService {
         BigDecimal multiplier = BigDecimal.valueOf(execution.getMultiplier());
 
         return contractFillPrice.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP).multiply(multiplier).doubleValue();
-    }
-
-    private boolean isDerivative(Types.SecType secType) {
-        switch(secType) {
-            case FUT:
-            case OPT:
-            case FOP:
-            case CFD:
-                return true;
-            default:
-                return false;
-        }
     }
 
     public List<Integer> getIfiYears() {
