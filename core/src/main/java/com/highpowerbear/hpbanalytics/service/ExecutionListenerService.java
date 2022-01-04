@@ -2,17 +2,17 @@ package com.highpowerbear.hpbanalytics.service;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
-import com.hazelcast.core.IQueue;
-import com.highpowerbear.shared.ExecutionDTO;
 import com.highpowerbear.hpbanalytics.common.ExecutionMapper;
 import com.highpowerbear.hpbanalytics.common.HanUtil;
 import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.database.Execution;
+import com.highpowerbear.shared.ExecutionDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,7 +52,7 @@ public class ExecutionListenerService implements InitializingService {
     }
 
     private void startHazelcastConsumer() {
-        IQueue<ExecutionDTO> queue = hanHazelcastInstance.getQueue(HanSettings.HAZELCAST_EXECUTION_QUEUE_NAME);
+        BlockingQueue<ExecutionDTO> queue = hanHazelcastInstance.getQueue(HanSettings.HAZELCAST_EXECUTION_QUEUE_NAME);
         log.info("starting hazelcast consumer");
 
         while (hazelcastConsumerRunning.get()) {

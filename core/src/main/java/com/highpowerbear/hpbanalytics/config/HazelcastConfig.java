@@ -1,9 +1,6 @@
 package com.highpowerbear.hpbanalytics.config;
 
-import com.hazelcast.config.Config;
-import com.hazelcast.config.EvictionPolicy;
-import com.hazelcast.config.MapConfig;
-import com.hazelcast.config.QueueConfig;
+import com.hazelcast.config.*;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.slf4j.Logger;
@@ -44,7 +41,9 @@ public class HazelcastConfig {
         log.info("configuring hazelcast exchange rate map");
 
         return new MapConfig(HanSettings.HAZELCAST_EXCHANGE_RATE_MAP_NAME)
-                .setEvictionPolicy(EvictionPolicy.NONE)
+                .setEvictionConfig(new EvictionConfig()
+                        .setEvictionPolicy(EvictionPolicy.NONE)
+                        .setMaxSizePolicy(MaxSizePolicy.PER_PARTITION))
                 .setMaxIdleSeconds(HanSettings.HAZELCAST_EXCHANGE_RATE_MAP_TIME_MAX_IDLE_SECONDS);
     }
 
@@ -52,6 +51,8 @@ public class HazelcastConfig {
         log.info("configuring hazelcast statistics map");
 
         return new MapConfig(HanSettings.HAZELCAST_STATISTICS_MAP_NAME)
-                .setEvictionPolicy(EvictionPolicy.NONE);
+                .setEvictionConfig(new EvictionConfig()
+                        .setEvictionPolicy(EvictionPolicy.NONE)
+                        .setMaxSizePolicy(MaxSizePolicy.PER_PARTITION));
     }
 }

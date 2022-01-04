@@ -1,7 +1,6 @@
 package com.highpowerbear.hpbanalytics.service;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
 import com.highpowerbear.hpbanalytics.common.ExchangeRateMapper;
 import com.highpowerbear.hpbanalytics.common.HanUtil;
 import com.highpowerbear.hpbanalytics.config.ApplicationProperties;
@@ -19,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -121,7 +121,7 @@ public class ExchangeRateService implements InitializingService, ScheduledTaskPe
     }
 
     private ExchangeRateDTO getExchangeRateDTO(String date) {
-        IMap<String, ExchangeRateDTO> map = exchangeRateMap();
+        Map<String, ExchangeRateDTO> map = exchangeRateMap();
 
         if (map.get(date) == null) {
             exchangeRateRepository.findById(date).ifPresent(entity -> map.put(date, exchangeRateMapper.entityToDto(entity)));
@@ -129,7 +129,7 @@ public class ExchangeRateService implements InitializingService, ScheduledTaskPe
         return map.get(date);
     }
 
-    private IMap<String, ExchangeRateDTO> exchangeRateMap() {
+    private Map<String, ExchangeRateDTO> exchangeRateMap() {
         return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_EXCHANGE_RATE_MAP_NAME);
     }
 }

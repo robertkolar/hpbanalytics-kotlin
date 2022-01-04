@@ -1,11 +1,13 @@
 package com.highpowerbear.hpbanalytics.service;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
 import com.highpowerbear.hpbanalytics.common.HanUtil;
 import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.config.WsTopic;
-import com.highpowerbear.hpbanalytics.database.*;
+import com.highpowerbear.hpbanalytics.database.DataFilters;
+import com.highpowerbear.hpbanalytics.database.Execution;
+import com.highpowerbear.hpbanalytics.database.Trade;
+import com.highpowerbear.hpbanalytics.database.TradeRepository;
 import com.highpowerbear.hpbanalytics.enums.Currency;
 import com.highpowerbear.hpbanalytics.enums.TradeType;
 import com.highpowerbear.hpbanalytics.model.Statistics;
@@ -249,7 +251,7 @@ public class StatisticsService {
         return localDate.atStartOfDay();
     }
 
-    private IMap<String, List<Statistics>> statisticsMap() {
+    private Map<String, List<Statistics>> statisticsMap() {
         return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_STATISTICS_MAP_NAME);
     }
 }
