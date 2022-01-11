@@ -51,7 +51,9 @@ Ext.define('HanGui.view.statistics.Statistics', {
         }, {
             html: '<div id="hpb_c7"></div>'
         }, {
-            html: '<div id="hpb_c8"></div>',
+            html: '<div id="hpb_c8"></div>'
+        }, {
+            html: '<div id="hpb_c9"></div>',
             margin: '0 0 50 0'
         }]
     }]

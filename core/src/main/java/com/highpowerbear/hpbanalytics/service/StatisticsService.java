@@ -21,6 +21,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -38,6 +39,7 @@ public class StatisticsService {
     private final HazelcastInstance hanHazelcastInstance;
     private final MessageService messageService;
     private final TradeCalculationService tradeCalculationService;
+    private final ExchangeRateService exchangeRateService;
 
     private final String ALL = "ALL";
 
@@ -45,12 +47,14 @@ public class StatisticsService {
     public StatisticsService(TradeRepository tradeRepository,
                              HazelcastInstance hanHazelcastInstance,
                              MessageService messageService,
-                             TradeCalculationService tradeCalculationService) {
+                             TradeCalculationService tradeCalculationService,
+                             ExchangeRateService exchangeRateService) {
 
         this.tradeRepository = tradeRepository;
         this.hanHazelcastInstance = hanHazelcastInstance;
         this.messageService = messageService;
         this.tradeCalculationService = tradeCalculationService;
+        this.exchangeRateService = exchangeRateService;
     }
 
     public List<Statistics> getStatistics(ChronoUnit interval, String tradeType, String secType, String currency, String underlying, Integer maxPoints) {
@@ -123,16 +127,17 @@ public class StatisticsService {
             List<Trade> tradesOpenedForPeriod = getTradesOpenedForPeriod(trades, periodDate, interval);
             List<Trade> tradesClosedForPeriod = getTradesClosedForPeriod(trades, periodDate, interval);
 
-            int numExecs = getNumberExecutionsForPeriod(trades, periodDate, interval);
+            List<Execution> executionsForPeriod = getExecutionsForPeriod(trades, periodDate, interval);
+            int numExecs = executionsForPeriod.size();
             int numOpened = tradesOpenedForPeriod.size();
             int numClosed = tradesClosedForPeriod.size();
             int numWinners = 0;
             int numLosers = 0;
             double pctWinners;
-            BigDecimal winnersProfit = BigDecimal.ZERO;
-            BigDecimal losersLoss = BigDecimal.ZERO;
             BigDecimal bigWinner = BigDecimal.ZERO;
             BigDecimal bigLoser = BigDecimal.ZERO;
+            BigDecimal winnersProfit = BigDecimal.ZERO;
+            BigDecimal losersLoss = BigDecimal.ZERO;
             BigDecimal profitLoss = BigDecimal.ZERO;
             BigDecimal profitLossTaxReport = BigDecimal.ZERO;
 
@@ -154,15 +159,25 @@ public class StatisticsService {
                     }
                 } else {
                     numLosers++;
-                    losersLoss = losersLoss.add(pl);
+                    losersLoss = losersLoss.add(pl.negate());
 
                     if (pl.compareTo(bigLoser) < 0) {
-                        bigLoser = pl;
+                        bigLoser = pl.negate();
                     }
                 }
             }
             pctWinners = numClosed != 0 ? ((double) numWinners / (double) numClosed) * 100.0 : 0.0;
             cumulProfitLoss = cumulProfitLoss.add(profitLoss);
+
+            BigDecimal valueBought = executionsForPeriod.stream()
+                    .filter(e -> e.getAction() == Types.Action.BUY)
+                    .map(this::calculateExecutionValueBase)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal valueSold = executionsForPeriod.stream()
+                    .filter(e -> e.getAction() == Types.Action.SELL)
+                    .map(this::calculateExecutionValueBase)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             Statistics s = new Statistics(
                     statsCount++,
@@ -177,6 +192,8 @@ public class StatisticsService {
                     bigLoser,
                     winnersProfit,
                     losersLoss,
+                    valueBought,
+                    valueSold,
                     profitLoss,
                     profitLossTaxReport,
                     cumulProfitLoss
@@ -185,6 +202,11 @@ public class StatisticsService {
             periodDate = periodDate.plus(1, interval);
         }
         return stats;
+    }
+
+    private BigDecimal calculateExecutionValueBase(Execution execution) {
+        BigDecimal exchangeRate = exchangeRateService.getExchangeRate(execution.getFillDate().toLocalDate(), execution.getCurrency());
+        return BigDecimal.valueOf(execution.getValue()).divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
     }
 
     private LocalDateTime firstDate(List<Trade> trades) {
@@ -226,13 +248,12 @@ public class StatisticsService {
                 .collect(Collectors.toList());
     }
 
-    private int getNumberExecutionsForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {
-        return (int) trades.stream()
+    private List<Execution> getExecutionsForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {
+        return trades.stream()
                 .flatMap(t -> t.getExecutions().stream())
                 .filter(e -> toBeginOfPeriod(e.getFillDate(), interval).isEqual(periodDate))
-                .map(Execution::getId)
                 .distinct()
-                .count();
+                .collect(Collectors.toList());
     }
 
     private LocalDateTime toBeginOfPeriod(LocalDateTime localDateTime, ChronoUnit interval) {

@@ -19,21 +19,18 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by robertk on 10/10/2016.
  */
 @Service
-public class ExchangeRateService implements InitializingService, ScheduledTaskPerformer {
+public class ExchangeRateService implements ScheduledTaskPerformer {
     private static final Logger log = LoggerFactory.getLogger(ExchangeRateService.class);
 
     private final ExchangeRateRepository exchangeRateRepository;
     private final HazelcastInstance hanHazelcastInstance;
     private final ExchangeRateMapper exchangeRateMapper;
     private final ApplicationProperties applicationProperties;
-    private final ScheduledExecutorService executorService;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -41,20 +38,12 @@ public class ExchangeRateService implements InitializingService, ScheduledTaskPe
     public ExchangeRateService(ExchangeRateRepository exchangeRateRepository,
                                HazelcastInstance hanHazelcastInstance,
                                ExchangeRateMapper exchangeRateMapper,
-                               ApplicationProperties applicationProperties,
-                               ScheduledExecutorService executorService) {
+                               ApplicationProperties applicationProperties) {
 
         this.exchangeRateRepository = exchangeRateRepository;
         this.hanHazelcastInstance = hanHazelcastInstance;
         this.exchangeRateMapper = exchangeRateMapper;
         this.applicationProperties = applicationProperties;
-        this.executorService = executorService;
-    }
-
-    @Override
-    public void initialize() {
-        log.info("initializing ExchangeRateService");
-        executorService.schedule(this::retrieveExchangeRates, HanSettings.EXCHANGE_RATE_RETRIEVAL_DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override

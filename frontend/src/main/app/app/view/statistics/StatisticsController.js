@@ -224,7 +224,8 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
             numberWinnersLosers = [],
             pctWinners = [],
             bigWinnerLoser = [],
-            plWinnersLosers = [];
+            plWinnersLosers = [],
+            valueBoughtSold = [];
 
         if (!Ext.get('hpb_c1')) {
             return;
@@ -237,18 +238,20 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
         pctWinners.push(['Date', 'Percent Winners']);
         bigWinnerLoser.push(['Date', 'Big Winner', 'Big Loser']);
         plWinnersLosers.push(['Date', 'Winners Profit', 'Losers Loss']);
+        valueBoughtSold.push(['Date', 'Value Bought', 'Value Sold']);
 
         statistics.each(function (record, id) {
             var rd = record.data;
 
             cumulativePl.push([new Date(rd.periodDate), rd.cumulProfitLoss]);
-            profitLoss.push([new Date(rd.periodDate), rd.profitLoss, (rd.profitLoss > 0 ? 'green' : (rd.profitLoss == 0 ? 'white' : 'red'))]);
+            profitLoss.push([new Date(rd.periodDate), rd.profitLoss, (rd.profitLoss > 0 ? 'green' : (rd.profitLoss === 0 ? 'white' : 'red'))]);
             numberExecutions.push([new Date(rd.periodDate), rd.numExecs]);
             numberOpenedClosed.push([new Date(rd.periodDate), rd.numOpened, rd.numClosed]);
             numberWinnersLosers.push([new Date(rd.periodDate), rd.numWinners, rd.numLosers]);
             pctWinners.push([new Date(rd.periodDate), rd.pctWinners]);
             bigWinnerLoser.push([new Date(rd.periodDate), rd.bigWinner, rd.bigLoser]);
             plWinnersLosers.push([new Date(rd.periodDate), rd.winnersProfit, rd.losersLoss]);
+            valueBoughtSold.push([new Date(rd.periodDate), rd.valueBought, rd.valueSold]);
         });
 
         GoogleChart.ceateLineChart(cumulativePl, 'Cumulative PL', 'hpb_c1');
@@ -259,6 +262,7 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
         GoogleChart.ceateColumnChart(pctWinners, 'Percent Winners', 'hpb_c6');
         GoogleChart.ceateColumnChart(bigWinnerLoser, 'Biggest Winner/Loser', 'hpb_c7');
         GoogleChart.ceateColumnChart(plWinnersLosers, 'Winners Profit/Losers Loss', 'hpb_c8');
+        GoogleChart.ceateColumnChart(valueBoughtSold, 'Value Bought/Sold', 'hpb_c9');
     },
 
     onChartsToggle: function(button, pressed, eOpts) {
