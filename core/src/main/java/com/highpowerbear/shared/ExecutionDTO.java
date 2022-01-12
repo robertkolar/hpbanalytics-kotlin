@@ -22,6 +22,7 @@ public class ExecutionDTO implements Serializable {
     private Double multiplier;
     private LocalDateTime fillDate;
     private BigDecimal fillPrice;
+    private BigDecimal inTheMoney;
 
     public String getReference() {
         return reference;
@@ -113,6 +114,15 @@ public class ExecutionDTO implements Serializable {
         return this;
     }
 
+    public BigDecimal getInTheMoney() {
+        return inTheMoney;
+    }
+
+    public ExecutionDTO setInTheMoney(BigDecimal inTheMoney) {
+        this.inTheMoney = inTheMoney;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "ExecutionDTO{" +
@@ -126,6 +136,7 @@ public class ExecutionDTO implements Serializable {
                 ", multiplier=" + multiplier +
                 ", fillDate=" + fillDate +
                 ", fillPrice=" + fillPrice +
+                ", inTheMoney=" + inTheMoney +
                 '}';
     }
 }

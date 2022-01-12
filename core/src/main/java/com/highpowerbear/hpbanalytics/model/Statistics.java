@@ -25,13 +25,15 @@ public class Statistics implements Serializable {
     private final BigDecimal losersLoss;
     private final BigDecimal valueBought;
     private final BigDecimal valueSold;
+    private final BigDecimal timeValueBought;
+    private final BigDecimal timeValueSold;
     private final BigDecimal profitLoss;
     private final BigDecimal profitLossTaxReport;
     private final BigDecimal cumulProfitLoss;
 
     public Statistics(int id, LocalDateTime periodDate, int numExecs, int numOpened,int numClosed, int numWinners, int numLosers, double pctWinners,
-                      BigDecimal bigWinner, BigDecimal bigLoser, BigDecimal winnersProfit, BigDecimal losersLoss, BigDecimal valueBought,
-                      BigDecimal valueSold, BigDecimal profitLoss, BigDecimal profitLossTaxReport, BigDecimal cumulProfitLoss) {
+                      BigDecimal bigWinner, BigDecimal bigLoser, BigDecimal winnersProfit, BigDecimal losersLoss, BigDecimal valueBought,  BigDecimal valueSold,
+                      BigDecimal timeValueBought, BigDecimal timeValueSold, BigDecimal profitLoss, BigDecimal profitLossTaxReport, BigDecimal cumulProfitLoss) {
 
         this.id = id;
         this.periodDate = periodDate;
@@ -47,6 +49,8 @@ public class Statistics implements Serializable {
         this.losersLoss = losersLoss;
         this.valueBought = valueBought;
         this.valueSold = valueSold;
+        this.timeValueBought = timeValueBought;
+        this.timeValueSold = timeValueSold;
         this.profitLoss = profitLoss;
         this.profitLossTaxReport = profitLossTaxReport;
         this.cumulProfitLoss = cumulProfitLoss;
@@ -108,6 +112,14 @@ public class Statistics implements Serializable {
         return valueSold;
     }
 
+    public BigDecimal getTimeValueBought() {
+        return timeValueBought;
+    }
+
+    public BigDecimal getTimeValueSold() {
+        return timeValueSold;
+    }
+
     public BigDecimal getProfitLoss() {
         return profitLoss;
     }
@@ -137,6 +149,8 @@ public class Statistics implements Serializable {
                 ", losersLoss=" + losersLoss +
                 ", valueBought=" + valueBought +
                 ", valueSold=" + valueSold +
+                ", timeValueBought=" + timeValueBought +
+                ", timeValueSold=" + timeValueSold +
                 ", profitLoss=" + profitLoss +
                 ", profitLossTaxReport=" + profitLossTaxReport +
                 ", cumulProfitLoss=" + cumulProfitLoss +

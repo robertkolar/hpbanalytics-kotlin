@@ -179,6 +179,18 @@ public class StatisticsService {
                     .map(this::calculateExecutionValueBase)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            BigDecimal timeValueBought = executionsForPeriod.stream()
+                    .filter(e -> e.getAction() == Types.Action.BUY)
+                    .filter(e -> e.getInTheMoney() != null)
+                    .map(this::calculateExecutionTimeValueBase)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal timeValueSold = executionsForPeriod.stream()
+                    .filter(e -> e.getAction() == Types.Action.SELL)
+                    .filter(e -> e.getInTheMoney() != null)
+                    .map(this::calculateExecutionTimeValueBase)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             Statistics s = new Statistics(
                     statsCount++,
                     periodDate,
@@ -194,6 +206,8 @@ public class StatisticsService {
                     losersLoss,
                     valueBought,
                     valueSold,
+                    timeValueBought,
+                    timeValueSold,
                     profitLoss,
                     profitLossTaxReport,
                     cumulProfitLoss
@@ -206,7 +220,12 @@ public class StatisticsService {
 
     private BigDecimal calculateExecutionValueBase(Execution execution) {
         BigDecimal exchangeRate = exchangeRateService.getExchangeRate(execution.getFillDate().toLocalDate(), execution.getCurrency());
-        return BigDecimal.valueOf(execution.getValue()).divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
+        return execution.getValue().divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculateExecutionTimeValueBase(Execution execution) {
+        BigDecimal exchangeRate = exchangeRateService.getExchangeRate(execution.getFillDate().toLocalDate(), execution.getCurrency());
+        return execution.getTimeValue().divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
     }
 
     private LocalDateTime firstDate(List<Trade> trades) {

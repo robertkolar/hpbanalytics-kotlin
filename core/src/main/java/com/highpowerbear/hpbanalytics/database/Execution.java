@@ -1,7 +1,6 @@
 package com.highpowerbear.hpbanalytics.database;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.highpowerbear.hpbanalytics.common.HanUtil;
 import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.enums.Currency;
 import com.ib.client.Types;
@@ -37,6 +36,7 @@ public class Execution implements Serializable {
     private Double multiplier;
     private LocalDateTime fillDate;
     private BigDecimal fillPrice;
+    private BigDecimal inTheMoney;
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private Trade trade;
@@ -155,8 +155,29 @@ public class Execution implements Serializable {
         return this;
     }
 
-    public Double getValue() {
-        return HanUtil.round(fillPrice.doubleValue() * multiplier * (double) quantity, HanSettings.DECIMAL_SCALE);
+    public BigDecimal getInTheMoney() {
+        return inTheMoney;
+    }
+
+    public Execution setInTheMoney(BigDecimal inTheMoney) {
+        this.inTheMoney = inTheMoney;
+        return this;
+    }
+
+    public BigDecimal getValue() {
+        return fillPrice
+                .multiply(BigDecimal.valueOf(multiplier))
+                .multiply(BigDecimal.valueOf(quantity));
+    }
+
+    public BigDecimal getTimeValue() {
+        if (inTheMoney == null) {
+            return BigDecimal.ZERO;
+        }
+        return fillPrice
+                .subtract(inTheMoney)
+                .multiply(BigDecimal.valueOf(multiplier))
+                .multiply(BigDecimal.valueOf(quantity));
     }
 
     public Trade getTrade() {
@@ -190,6 +211,7 @@ public class Execution implements Serializable {
                 ", multiplier=" + multiplier +
                 ", fillDate=" + fillDate +
                 ", fillPrice=" + fillPrice +
+                ", inTheMoney=" + inTheMoney +
                 ", tradeId=" + getTradeId() +
                 ", tradeExecutionIds=" + getTradeExecutionIds() +
                 '}';

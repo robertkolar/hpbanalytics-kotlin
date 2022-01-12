@@ -16,6 +16,7 @@ Ext.define('HanGui.model.Execution', {
         'fillDate',
         'fillPrice',
         'value',
+        'timeValue',
         {name: 'tradeId', reference: {type: 'Trade', inverse: 'executions'}}
     ]
 });

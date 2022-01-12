@@ -100,6 +100,20 @@ Ext.define('HanGui.view.statistics.StatisticsGrid', {
         dataIndex: 'valueSold',
         align: 'right'
     }, {
+        xtype: 'numbercolumn',
+        format: '0.00',
+        text: 'TValue B',
+        width: 100,
+        dataIndex: 'timeValueBought',
+        align: 'right'
+    }, {
+        xtype: 'numbercolumn',
+        format: '0.00',
+        text: 'TValue S',
+        width: 100,
+        dataIndex: 'timeValueSold',
+        align: 'right'
+    }, {
         text: 'PL Period',
         width: 100,
         dataIndex: 'profitLoss',

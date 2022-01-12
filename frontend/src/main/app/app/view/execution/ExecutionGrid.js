@@ -85,6 +85,12 @@ Ext.define('HanGui.view.execution.ExecutionGrid', {
         align: 'right',
         renderer: 'priceRenderer'
     }, {
+        text: 'Time Value',
+        width: 100,
+        dataIndex: 'timeValue',
+        align: 'right',
+        renderer: 'priceRenderer'
+    }, {
         text: 'Trade ID',
         width: 100,
         dataIndex: 'tradeId',

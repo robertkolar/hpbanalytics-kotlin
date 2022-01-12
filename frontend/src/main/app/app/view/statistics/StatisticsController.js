@@ -225,7 +225,8 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
             pctWinners = [],
             bigWinnerLoser = [],
             plWinnersLosers = [],
-            valueBoughtSold = [];
+            valueBoughtSold = [],
+            timeValueBoughtSold = [];
 
         if (!Ext.get('hpb_c1')) {
             return;
@@ -239,6 +240,7 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
         bigWinnerLoser.push(['Date', 'Big Winner', 'Big Loser']);
         plWinnersLosers.push(['Date', 'Winners Profit', 'Losers Loss']);
         valueBoughtSold.push(['Date', 'Value Bought', 'Value Sold']);
+        timeValueBoughtSold.push(['Date', 'TV Bought', 'TV Sold']);
 
         statistics.each(function (record, id) {
             var rd = record.data;
@@ -252,6 +254,7 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
             bigWinnerLoser.push([new Date(rd.periodDate), rd.bigWinner, rd.bigLoser]);
             plWinnersLosers.push([new Date(rd.periodDate), rd.winnersProfit, rd.losersLoss]);
             valueBoughtSold.push([new Date(rd.periodDate), rd.valueBought, rd.valueSold]);
+            timeValueBoughtSold.push([new Date(rd.periodDate), rd.timeValueBought, rd.timeValueSold]);
         });
 
         GoogleChart.ceateLineChart(cumulativePl, 'Cumulative PL', 'hpb_c1');
@@ -263,6 +266,7 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
         GoogleChart.ceateColumnChart(bigWinnerLoser, 'Biggest Winner/Loser', 'hpb_c7');
         GoogleChart.ceateColumnChart(plWinnersLosers, 'Winners Profit/Losers Loss', 'hpb_c8');
         GoogleChart.ceateColumnChart(valueBoughtSold, 'Value Bought/Sold', 'hpb_c9');
+        GoogleChart.ceateColumnChart(timeValueBoughtSold, 'Time Value Bought/Sold', 'hpb_c10');
     },
 
     onChartsToggle: function(button, pressed, eOpts) {
