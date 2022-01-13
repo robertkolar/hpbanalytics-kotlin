@@ -181,13 +181,13 @@ public class StatisticsService {
 
             BigDecimal timeValueBought = executionsForPeriod.stream()
                     .filter(e -> e.getAction() == Types.Action.BUY)
-                    .filter(e -> e.getInTheMoney() != null)
+                    .filter(e -> e.getTimeValue() != null)
                     .map(this::calculateExecutionTimeValueBase)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal timeValueSold = executionsForPeriod.stream()
                     .filter(e -> e.getAction() == Types.Action.SELL)
-                    .filter(e -> e.getInTheMoney() != null)
+                    .filter(e -> e.getTimeValue() != null)
                     .map(this::calculateExecutionTimeValueBase)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 

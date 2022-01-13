@@ -36,7 +36,7 @@ public class Execution implements Serializable {
     private Double multiplier;
     private LocalDateTime fillDate;
     private BigDecimal fillPrice;
-    private BigDecimal inTheMoney;
+    private BigDecimal timeValue;
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private Trade trade;
@@ -155,27 +155,17 @@ public class Execution implements Serializable {
         return this;
     }
 
-    public BigDecimal getInTheMoney() {
-        return inTheMoney;
+    public BigDecimal getTimeValue() {
+        return timeValue;
     }
 
-    public Execution setInTheMoney(BigDecimal inTheMoney) {
-        this.inTheMoney = inTheMoney;
+    public Execution setTimeValue(BigDecimal timeValue) {
+        this.timeValue = timeValue;
         return this;
     }
 
     public BigDecimal getValue() {
         return fillPrice
-                .multiply(BigDecimal.valueOf(multiplier))
-                .multiply(BigDecimal.valueOf(quantity));
-    }
-
-    public BigDecimal getTimeValue() {
-        if (inTheMoney == null) {
-            return BigDecimal.ZERO;
-        }
-        return fillPrice
-                .subtract(inTheMoney)
                 .multiply(BigDecimal.valueOf(multiplier))
                 .multiply(BigDecimal.valueOf(quantity));
     }
@@ -211,7 +201,7 @@ public class Execution implements Serializable {
                 ", multiplier=" + multiplier +
                 ", fillDate=" + fillDate +
                 ", fillPrice=" + fillPrice +
-                ", inTheMoney=" + inTheMoney +
+                ", timeValue=" + timeValue +
                 ", tradeId=" + getTradeId() +
                 ", tradeExecutionIds=" + getTradeExecutionIds() +
                 '}';
