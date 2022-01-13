@@ -1,2 +1,2 @@
 # hpbanalytics
-Analytics for Interactive Brokers TWS or IB Gateway trades
+Trade analytics for options, futures, futures options, stocks and CFDs
