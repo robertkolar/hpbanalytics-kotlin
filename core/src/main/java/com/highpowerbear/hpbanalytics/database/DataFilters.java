@@ -13,6 +13,7 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +22,7 @@ import java.util.List;
  */
 public class DataFilters {
 
-    public static Example<Trade> tradeFilterByExample(TradeType tradeType, Types.SecType secType, Currency currency, String underlying) {
+    public static Example<Trade> tradeExample(TradeType tradeType, Types.SecType secType, Currency currency, String underlying) {
         return Example.of(new Trade()
                 .setType(tradeType)
                 .setSecType(secType)
@@ -29,12 +30,36 @@ public class DataFilters {
                 .setUnderlying(underlying));
     }
 
-    public static Specification<Execution> filteredExecutions(List<DataFilterItem> dataFilterItems) {
+    public static Specification<Execution> executionSpecification(List<DataFilterItem> dataFilterItems) {
         return (root, query, builder) -> build(root, builder, dataFilterItems);
     }
 
-    public static Specification<Trade> filteredTrades(List<DataFilterItem> dataFilterItems) {
+    public static Specification<Trade> tradeSpecification(List<DataFilterItem> dataFilterItems) {
         return (root, query, builder) -> build(root, builder, dataFilterItems);
+    }
+
+    public static Specification<Trade> tradeSpecification(TradeType tradeType, Types.SecType secType, Currency currency, String underlying, LocalDateTime cutoffDate) {
+        return (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (tradeType != null) {
+                predicates.add(builder.equal(root.get("tradeType"), tradeType));
+            }
+            if (secType != null) {
+                predicates.add(builder.equal(root.get("secType"), secType));
+            }
+            if (currency != null) {
+                predicates.add(builder.equal(root.get("currency"), currency));
+            }
+            if (underlying != null) {
+                predicates.add(builder.equal(root.get("underlying"), underlying));
+            }
+            predicates.add(builder.or(
+                    builder.greaterThanOrEqualTo(root.get("openDate"), cutoffDate),
+                    builder.greaterThanOrEqualTo(root.get("closeDate"), cutoffDate),
+                    builder.isNull(root.get("closeDate"))));
+
+            return builder.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     private static <R> Predicate build(Root<R> root, CriteriaBuilder builder, List<DataFilterItem> dataFilterItems) {

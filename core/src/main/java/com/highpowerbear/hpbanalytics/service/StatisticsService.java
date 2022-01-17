@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -72,36 +73,65 @@ public class StatisticsService {
         return new ArrayList<>(statisticsList.subList(firstIndex, size)); // copy because reverse will be performed on it
     }
 
+    public List<Statistics> getCurrentStatistics(String tradeType, String secType, String currency, String underlying) {
+        List<Statistics> currentStatisticsList = currentStatisticsMap().get(statisticsKey(null, tradeType, secType, currency, underlying));
+        return Objects.requireNonNullElse(currentStatisticsList, Collections.emptyList());
+    }
+
     @Async("taskExecutor")
     public void calculateStatistics(ChronoUnit interval, String tradeType, String secType, String currency, String underlying) {
         log.info("BEGIN statistics calculation for interval=" + interval + ", tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
 
-        Example<Trade> filter = DataFilters.tradeFilterByExample(
+        Example<Trade> tradeExample = DataFilters.tradeExample(
                 normalizeEnumParam(tradeType, TradeType.class),
                 normalizeEnumParam(secType, Types.SecType.class),
                 normalizeEnumParam(currency, Currency.class),
                 ALL.equals(underlying) ? null : underlying);
 
-        List<Trade> trades = tradeRepository.findAll(filter, Sort.by(Sort.Direction.ASC, "openDate"));
+        List<Trade> trades = tradeRepository.findAll(tradeExample, Sort.by(Sort.Direction.ASC, "openDate"));
 
         log.info("found " + trades.size() + " trades matching the filter criteria, calculating statistics...");
-        List<Statistics> stats = calculate(trades, interval);
-        statisticsMap().put(statisticsKey(interval, tradeType, secType, currency, underlying), stats);
+        List<Statistics> statisticsList = calculate(trades, interval);
+        statisticsMap().put(statisticsKey(interval, tradeType, secType, currency, underlying), statisticsList);
 
         log.info("END statistics calculation for interval=" + interval + ", included " + trades.size() + " trades");
-
         messageService.sendWsReloadRequestMessage(WsTopic.STATISTICS);
+    }
+
+    @Async("taskExecutor")
+    public void calculateCurrentStatistics(String tradeType, String secType, String currency, String underlying) {
+        log.info("BEGIN current statistics calculation for tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
+
+        LocalDateTime periodDate = toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS);
+        Specification<Trade> tradeSpecification = DataFilters.tradeSpecification(
+                normalizeEnumParam(tradeType, TradeType.class),
+                normalizeEnumParam(secType, Types.SecType.class),
+                normalizeEnumParam(currency, Currency.class),
+                ALL.equals(underlying) ? null : underlying,
+                periodDate
+        );
+        List<Trade> trades = tradeRepository.findAll(tradeSpecification, Sort.by(Sort.Direction.ASC, "openDate"));
+
+        log.info("found " + trades.size() + " trades matching the filter criteria, calculating current statistics...");
+        Statistics daily = calculateCurrent(trades, ChronoUnit.DAYS);
+        Statistics monthly = calculateCurrent(trades, ChronoUnit.MONTHS);
+        Statistics yearly = calculateCurrent(trades, ChronoUnit.YEARS);
+
+        currentStatisticsMap().put(statisticsKey(null, tradeType, secType, currency, underlying), List.of(daily, monthly, yearly));
+
+        log.info("END current statistics calculation, included " + trades.size() + " trades");
+        messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS);
     }
 
     private String statisticsKey(ChronoUnit interval, String tradeType, String secType, String currency, String underlying) {
 
-        String intervalKey = interval.name();
+        String intervalKey = interval != null ? interval.name() : null;
         String tradeTypeKey = tradeType == null || ALL.equals(tradeType) ? ALL : tradeType;
         String secTypeKey = secType == null || ALL.equals(secType) ? ALL : secType;
         String currencyKey = currency == null || ALL.equals(currency) ? ALL : currency;
         String underlyingKey = underlying == null ? ALL : underlying;
 
-        return intervalKey + "_" + tradeTypeKey + "_" + secTypeKey + "_" + currencyKey + "_" + underlyingKey;
+        return intervalKey != null ? intervalKey + "_" : "" + tradeTypeKey + "_" + secTypeKey + "_" + currencyKey + "_" + underlyingKey;
     }
 
     private <T extends Enum<T>> T normalizeEnumParam(String param, Class<T> enumType) {
@@ -123,73 +153,89 @@ public class StatisticsService {
         int statsCount = 1;
 
         while (!periodDate.isAfter(lastPeriodDate)) {
-            List<Trade> tradesOpenedForPeriod = getTradesOpenedForPeriod(trades, periodDate, interval);
-            List<Trade> tradesClosedForPeriod = getTradesClosedForPeriod(trades, periodDate, interval);
+            Statistics statistics = calculatePeriod(trades, interval, periodDate);
 
-            List<Execution> executionsForPeriod = getExecutionsForPeriod(trades, periodDate, interval);
-
-            int numWinners = 0;
-            int numLosers = 0;
-            BigDecimal bigWinner = BigDecimal.ZERO;
-            BigDecimal bigLoser = BigDecimal.ZERO;
-            BigDecimal winnersProfit = BigDecimal.ZERO;
-            BigDecimal losersLoss = BigDecimal.ZERO;
-            BigDecimal profitLoss = BigDecimal.ZERO;
-            BigDecimal profitLossTaxReport = BigDecimal.ZERO;
-
-            for (Trade trade : tradesClosedForPeriod) {
-                BigDecimal pl = tradeCalculationService.calculatePlPortfolioBaseCloseOnly(trade);
-                profitLoss = profitLoss.add(pl);
-
-                if (HanUtil.isDerivative(trade.getSecType())) {
-                    BigDecimal plTr = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade);
-                    profitLossTaxReport = profitLossTaxReport.add(plTr);
-                }
-
-                if (pl.doubleValue() >= 0) {
-                    numWinners++;
-                    winnersProfit = winnersProfit.add(pl);
-
-                    if (pl.compareTo(bigWinner) > 0) {
-                        bigWinner = pl;
-                    }
-                } else {
-                    numLosers++;
-                    losersLoss = losersLoss.add(pl.negate());
-
-                    if (pl.compareTo(bigLoser) < 0) {
-                        bigLoser = pl.negate();
-                    }
-                }
-            }
-            double pctWinners = !tradesClosedForPeriod.isEmpty() ? ((double) numWinners / (double) tradesClosedForPeriod.size()) * 100.0 : 0.0;
-            cumulProfitLoss = cumulProfitLoss.add(profitLoss);
-
-            Statistics statistics = new Statistics()
+            cumulProfitLoss = cumulProfitLoss.add(statistics.getProfitLoss());
+            statistics
                     .setId(statsCount++)
-                    .setPeriodDate(periodDate)
-                    .setNumExecs(executionsForPeriod.size())
-                    .setNumOpened(tradesOpenedForPeriod.size())
-                    .setNumClosed(tradesClosedForPeriod.size())
-                    .setNumWinners(numWinners)
-                    .setNumLosers(numLosers)
-                    .setPctWinners(HanUtil.round2(pctWinners))
-                    .setBigWinner(bigWinner)
-                    .setBigLoser(bigLoser)
-                    .setWinnersProfit(winnersProfit)
-                    .setLosersLoss(losersLoss)
-                    .setValueBought(valueSum(executionsForPeriod, Types.Action.BUY))
-                    .setValueSold(valueSum(executionsForPeriod, Types.Action.SELL))
-                    .setTimeValueBought(timeValueSum(executionsForPeriod, Types.Action.BUY))
-                    .setTimeValueSold(timeValueSum(executionsForPeriod, Types.Action.SELL))
-                    .setProfitLoss(profitLoss)
-                    .setProfitLossTaxReport(profitLossTaxReport)
                     .setCumulProfitLoss(cumulProfitLoss);
 
             statisticsList.add(statistics);
             periodDate = periodDate.plus(1, interval);
         }
         return statisticsList;
+    }
+
+    private Statistics calculateCurrent(List<Trade> trades, ChronoUnit interval) {
+        Statistics statistics = calculatePeriod(trades, interval, toBeginOfPeriod(LocalDateTime.now(), interval));
+        return statistics
+                .setId(1)
+                .setCumulProfitLoss(statistics.getProfitLoss());
+    }
+
+    private Statistics calculatePeriod(List<Trade> trades, ChronoUnit interval, LocalDateTime periodDate) {
+        if (trades == null || trades.isEmpty()) {
+            return new Statistics();
+        }
+
+        List<Trade> tradesOpenedForPeriod = getTradesOpenedForPeriod(trades, periodDate, interval);
+        List<Trade> tradesClosedForPeriod = getTradesClosedForPeriod(trades, periodDate, interval);
+        List<Execution> executionsForPeriod = getExecutionsForPeriod(trades, periodDate, interval);
+
+        int numWinners = 0;
+        int numLosers = 0;
+        BigDecimal bigWinner = BigDecimal.ZERO;
+        BigDecimal bigLoser = BigDecimal.ZERO;
+        BigDecimal winnersProfit = BigDecimal.ZERO;
+        BigDecimal losersLoss = BigDecimal.ZERO;
+        BigDecimal profitLoss = BigDecimal.ZERO;
+        BigDecimal profitLossTaxReport = BigDecimal.ZERO;
+
+        for (Trade trade : tradesClosedForPeriod) {
+            BigDecimal pl = tradeCalculationService.calculatePlPortfolioBaseCloseOnly(trade);
+            profitLoss = profitLoss.add(pl);
+
+            if (HanUtil.isDerivative(trade.getSecType())) {
+                BigDecimal plTr = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade);
+                profitLossTaxReport = profitLossTaxReport.add(plTr);
+            }
+
+            if (pl.doubleValue() >= 0) {
+                numWinners++;
+                winnersProfit = winnersProfit.add(pl);
+
+                if (pl.compareTo(bigWinner) > 0) {
+                    bigWinner = pl;
+                }
+            } else {
+                numLosers++;
+                losersLoss = losersLoss.add(pl.negate());
+
+                if (pl.compareTo(bigLoser) < 0) {
+                    bigLoser = pl.negate();
+                }
+            }
+        }
+        double pctWinners = !tradesClosedForPeriod.isEmpty() ? ((double) numWinners / (double) tradesClosedForPeriod.size()) * 100.0 : 0.0;
+
+        return new Statistics()
+                .setPeriodDate(periodDate)
+                .setNumExecs(executionsForPeriod.size())
+                .setNumOpened(tradesOpenedForPeriod.size())
+                .setNumClosed(tradesClosedForPeriod.size())
+                .setNumWinners(numWinners)
+                .setNumLosers(numLosers)
+                .setPctWinners(HanUtil.round2(pctWinners))
+                .setBigWinner(bigWinner)
+                .setBigLoser(bigLoser)
+                .setWinnersProfit(winnersProfit)
+                .setLosersLoss(losersLoss)
+                .setValueBought(valueSum(executionsForPeriod, Types.Action.BUY))
+                .setValueSold(valueSum(executionsForPeriod, Types.Action.SELL))
+                .setTimeValueBought(timeValueSum(executionsForPeriod, Types.Action.BUY))
+                .setTimeValueSold(timeValueSum(executionsForPeriod, Types.Action.SELL))
+                .setProfitLoss(profitLoss)
+                .setProfitLossTaxReport(profitLossTaxReport);
     }
 
     private BigDecimal valueSum(List<Execution> executions, Types.Action action) {
@@ -202,6 +248,7 @@ public class StatisticsService {
     private BigDecimal timeValueSum(List<Execution> executions, Types.Action action) {
         return executions.stream()
                 .filter(e -> e.getAction() == action)
+                .filter(e -> e.getTimeValue() != null)
                 .map(e -> valueBase(e.getTimeValue(), e.getFillDate().toLocalDate(), e.getCurrency()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
@@ -276,5 +323,9 @@ public class StatisticsService {
 
     private Map<String, List<Statistics>> statisticsMap() {
         return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_STATISTICS_MAP_NAME);
+    }
+
+    private Map<String, List<Statistics>> currentStatisticsMap() {
+        return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_CURRENT_STATISTICS_MAP_NAME);
     }
 }

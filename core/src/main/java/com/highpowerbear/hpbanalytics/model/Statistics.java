@@ -19,7 +19,7 @@ public class Statistics implements Serializable {
     private int numWinners;
     private int numLosers;
     private double pctWinners;
-    private  BigDecimal bigWinner;
+    private BigDecimal bigWinner;
     private BigDecimal bigLoser;
     private BigDecimal winnersProfit;
     private BigDecimal losersLoss;
@@ -28,8 +28,8 @@ public class Statistics implements Serializable {
     private BigDecimal timeValueBought;
     private BigDecimal timeValueSold;
     private BigDecimal profitLoss;
-    private  BigDecimal profitLossTaxReport;
-    private  BigDecimal cumulProfitLoss;
+    private BigDecimal profitLossTaxReport;
+    private BigDecimal cumulProfitLoss;
 
     public int getId() {
         return id;

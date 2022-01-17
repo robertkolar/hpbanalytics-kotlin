@@ -21,7 +21,8 @@ public class HazelcastConfig {
         Config config = new Config(HanSettings.HAZELCAST_INSTANCE_NAME)
                 .addQueueConfig(executionQueueConfig())
                 .addMapConfig(exchangeRateMapConfig())
-                .addMapConfig(statisticsMapConfig());
+                .addMapConfig(statisticsMapConfig())
+                .addMapConfig(currentStatisticsMapConfig());
 
         log.info("hazelcast queue configs " + config.getQueueConfigs());
         log.info("hazelcast map configs " + config.getMapConfigs());
@@ -51,6 +52,15 @@ public class HazelcastConfig {
         log.info("configuring hazelcast statistics map");
 
         return new MapConfig(HanSettings.HAZELCAST_STATISTICS_MAP_NAME)
+                .setEvictionConfig(new EvictionConfig()
+                        .setEvictionPolicy(EvictionPolicy.NONE)
+                        .setMaxSizePolicy(MaxSizePolicy.PER_PARTITION));
+    }
+
+    private MapConfig currentStatisticsMapConfig() {
+        log.info("configuring hazelcast current statistics map");
+
+        return new MapConfig(HanSettings.HAZELCAST_CURRENT_STATISTICS_MAP_NAME)
                 .setEvictionConfig(new EvictionConfig()
                         .setEvictionPolicy(EvictionPolicy.NONE)
                         .setMaxSizePolicy(MaxSizePolicy.PER_PARTITION));

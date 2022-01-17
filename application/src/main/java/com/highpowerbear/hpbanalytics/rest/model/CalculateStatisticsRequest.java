@@ -1,6 +1,5 @@
 package com.highpowerbear.hpbanalytics.rest.model;
 
-import javax.validation.constraints.NotNull;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -8,7 +7,6 @@ import java.time.temporal.ChronoUnit;
  */
 public class CalculateStatisticsRequest {
 
-    @NotNull
     private ChronoUnit interval;
     private String tradeType;
     private String secType;

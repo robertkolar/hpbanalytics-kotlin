@@ -1,10 +1,7 @@
 package com.highpowerbear.hpbanalytics.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.highpowerbear.hpbanalytics.database.Execution;
-import com.highpowerbear.hpbanalytics.database.ExecutionRepository;
-import com.highpowerbear.hpbanalytics.database.Trade;
-import com.highpowerbear.hpbanalytics.database.TradeRepository;
+import com.highpowerbear.hpbanalytics.database.*;
 import com.highpowerbear.hpbanalytics.enums.TradeStatus;
 import com.highpowerbear.hpbanalytics.enums.TradeType;
 import com.highpowerbear.hpbanalytics.model.DataFilterItem;
@@ -24,13 +21,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import static com.highpowerbear.hpbanalytics.database.DataFilters.filteredExecutions;
-import static com.highpowerbear.hpbanalytics.database.DataFilters.filteredTrades;
 
 /**
  * Created by robertk on 12/21/2017.
@@ -75,8 +68,8 @@ public class AppRestController {
         if (jsonFilter != null) {
             List<DataFilterItem> filter = Arrays.asList(objectMapper.readValue(jsonFilter, DataFilterItem[].class));
 
-            executions = executionRepository.findAll(filteredExecutions(filter), pageable).getContent();
-            numExecutions = executionRepository.count(filteredExecutions(filter));
+            executions = executionRepository.findAll(DataFilters.executionSpecification(filter), pageable).getContent();
+            numExecutions = executionRepository.count(DataFilters.executionSpecification(filter));
 
         } else {
             executions = executionRepository.findAll(pageable).getContent();
@@ -126,8 +119,8 @@ public class AppRestController {
         if (jsonFilter != null) {
             List<DataFilterItem> filter = Arrays.asList(objectMapper.readValue(jsonFilter, DataFilterItem[].class));
 
-            trades = tradeRepository.findAll(filteredTrades(filter), pageable).getContent();
-            numTrades = tradeRepository.count(filteredTrades(filter));
+            trades = tradeRepository.findAll(DataFilters.tradeSpecification(filter), pageable).getContent();
+            numTrades = tradeRepository.count(DataFilters.tradeSpecification(filter));
 
         } else {
             trades = tradeRepository.findAll(pageable).getContent();
@@ -188,6 +181,22 @@ public class AppRestController {
         return ResponseEntity.ok(new GenericList<>(page(items, start, limit, total), total));
     }
 
+    @RequestMapping("statistics/current")
+    public ResponseEntity<?> getCurrentStatistics(
+            @RequestParam(required = false, value = "tradeType") String tradeType,
+            @RequestParam(required = false, value = "secType") String secType,
+            @RequestParam(required = false, value = "currency") String currency,
+            @RequestParam(required = false, value = "underlying") String underlying,
+            @RequestParam("start") int start,
+            @RequestParam("limit") int limit) {
+
+        List<Statistics> items = statisticsService.getCurrentStatistics(tradeType, secType, currency, underlying);
+        Collections.reverse(items);
+
+        int total = items.size();
+        return ResponseEntity.ok(new GenericList<>(page(items, start, limit, total), total));
+    }
+
     @RequestMapping("statistics/underlyings")
     public ResponseEntity<?> getUnderlyings(@RequestParam(required = false, value = "openOnly") boolean openOnly) {
 
@@ -204,6 +213,13 @@ public class AppRestController {
     public ResponseEntity<?> calculateStatistics(@RequestBody CalculateStatisticsRequest r) {
 
         statisticsService.calculateStatistics(r.getInterval(), r.getTradeType(), r.getSecType(), r.getCurrency(), r.getUnderlying());
+        return ResponseEntity.ok().build();
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "statistics/last")
+    public ResponseEntity<?> calculateLastStatistics(@RequestBody CalculateStatisticsRequest r) {
+
+        statisticsService.calculateCurrentStatistics(r.getTradeType(), r.getSecType(), r.getCurrency(), r.getUnderlying());
         return ResponseEntity.ok().build();
     }
 
