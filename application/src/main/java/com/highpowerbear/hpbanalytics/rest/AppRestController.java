@@ -181,16 +181,11 @@ public class AppRestController {
             @RequestParam("start") int start,
             @RequestParam("limit") int limit) {
 
-        List<Statistics> statistics = statisticsService.getStatistics(interval, tradeType, secType, currency, underlying, null);
-        Collections.reverse(statistics);
-        List<Statistics> statisticsPage = new ArrayList<>();
+        List<Statistics> items = statisticsService.getStatistics(interval, tradeType, secType, currency, underlying, null);
+        Collections.reverse(items);
 
-        for (int i = 0; i < statistics.size(); i++) {
-            if (i >= start && i < (start + limit)) {
-                statisticsPage.add(statistics.get(i));
-            }
-        }
-        return ResponseEntity.ok(new GenericList<>(statisticsPage, statistics.size()));
+        int total = items.size();
+        return ResponseEntity.ok(new GenericList<>(page(items, start, limit, total), total));
     }
 
     @RequestMapping("statistics/underlyings")
@@ -237,5 +232,18 @@ public class AppRestController {
             @RequestParam("tradeType") TradeType tradeType) {
 
         return ResponseEntity.ok(taxReportService.generate(year, endMonth, tradeType));
+    }
+
+    private <T> List<T> page(List<T> items, int start, int limit, int total) {
+        List<T> itemsPaged;
+
+        if (!items.isEmpty()) {
+            int fromIndex = Math.min(start, total - 1);
+            int toIndex = Math.min(fromIndex + limit, total);
+            itemsPaged = items.subList(fromIndex, toIndex);
+        } else {
+            itemsPaged = Collections.emptyList();
+        }
+        return itemsPaged;
     }
 }

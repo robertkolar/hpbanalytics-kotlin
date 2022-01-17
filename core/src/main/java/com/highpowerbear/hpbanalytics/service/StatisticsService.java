@@ -110,10 +110,9 @@ public class StatisticsService {
     }
 
     private List<Statistics> calculate(List<Trade> trades, ChronoUnit interval) {
-        List<Statistics> stats = new ArrayList<>();
-
+        List<Statistics> statisticsList = new ArrayList<>();
         if (trades == null || trades.isEmpty()) {
-            return stats;
+            return statisticsList;
         }
 
         LocalDateTime firstPeriodDate = toBeginOfPeriod(firstDate(trades), interval);
@@ -128,12 +127,9 @@ public class StatisticsService {
             List<Trade> tradesClosedForPeriod = getTradesClosedForPeriod(trades, periodDate, interval);
 
             List<Execution> executionsForPeriod = getExecutionsForPeriod(trades, periodDate, interval);
-            int numExecs = executionsForPeriod.size();
-            int numOpened = tradesOpenedForPeriod.size();
-            int numClosed = tradesClosedForPeriod.size();
+
             int numWinners = 0;
             int numLosers = 0;
-            double pctWinners;
             BigDecimal bigWinner = BigDecimal.ZERO;
             BigDecimal bigLoser = BigDecimal.ZERO;
             BigDecimal winnersProfit = BigDecimal.ZERO;
@@ -166,66 +162,53 @@ public class StatisticsService {
                     }
                 }
             }
-            pctWinners = numClosed != 0 ? ((double) numWinners / (double) numClosed) * 100.0 : 0.0;
+            double pctWinners = !tradesClosedForPeriod.isEmpty() ? ((double) numWinners / (double) tradesClosedForPeriod.size()) * 100.0 : 0.0;
             cumulProfitLoss = cumulProfitLoss.add(profitLoss);
 
-            BigDecimal valueBought = executionsForPeriod.stream()
-                    .filter(e -> e.getAction() == Types.Action.BUY)
-                    .map(this::calculateExecutionValueBase)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            Statistics statistics = new Statistics()
+                    .setId(statsCount++)
+                    .setPeriodDate(periodDate)
+                    .setNumExecs(executionsForPeriod.size())
+                    .setNumOpened(tradesOpenedForPeriod.size())
+                    .setNumClosed(tradesClosedForPeriod.size())
+                    .setNumWinners(numWinners)
+                    .setNumLosers(numLosers)
+                    .setPctWinners(HanUtil.round2(pctWinners))
+                    .setBigWinner(bigWinner)
+                    .setBigLoser(bigLoser)
+                    .setWinnersProfit(winnersProfit)
+                    .setLosersLoss(losersLoss)
+                    .setValueBought(valueSum(executionsForPeriod, Types.Action.BUY))
+                    .setValueSold(valueSum(executionsForPeriod, Types.Action.SELL))
+                    .setTimeValueBought(timeValueSum(executionsForPeriod, Types.Action.BUY))
+                    .setTimeValueSold(timeValueSum(executionsForPeriod, Types.Action.SELL))
+                    .setProfitLoss(profitLoss)
+                    .setProfitLossTaxReport(profitLossTaxReport)
+                    .setCumulProfitLoss(cumulProfitLoss);
 
-            BigDecimal valueSold = executionsForPeriod.stream()
-                    .filter(e -> e.getAction() == Types.Action.SELL)
-                    .map(this::calculateExecutionValueBase)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            BigDecimal timeValueBought = executionsForPeriod.stream()
-                    .filter(e -> e.getAction() == Types.Action.BUY)
-                    .filter(e -> e.getTimeValue() != null)
-                    .map(this::calculateExecutionTimeValueBase)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            BigDecimal timeValueSold = executionsForPeriod.stream()
-                    .filter(e -> e.getAction() == Types.Action.SELL)
-                    .filter(e -> e.getTimeValue() != null)
-                    .map(this::calculateExecutionTimeValueBase)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            Statistics s = new Statistics(
-                    statsCount++,
-                    periodDate,
-                    numExecs,
-                    numOpened,
-                    numClosed,
-                    numWinners,
-                    numLosers,
-                    HanUtil.round2(pctWinners),
-                    bigWinner,
-                    bigLoser,
-                    winnersProfit,
-                    losersLoss,
-                    valueBought,
-                    valueSold,
-                    timeValueBought,
-                    timeValueSold,
-                    profitLoss,
-                    profitLossTaxReport,
-                    cumulProfitLoss
-            );
-            stats.add(s);
+            statisticsList.add(statistics);
             periodDate = periodDate.plus(1, interval);
         }
-        return stats;
+        return statisticsList;
     }
 
-    private BigDecimal calculateExecutionValueBase(Execution execution) {
-        BigDecimal exchangeRate = exchangeRateService.getExchangeRate(execution.getFillDate().toLocalDate(), execution.getCurrency());
-        return execution.getValue().divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
+    private BigDecimal valueSum(List<Execution> executions, Types.Action action) {
+        return executions.stream()
+                .filter(e -> e.getAction() == action)
+                .map(e -> valueBase(e.getValue(), e.getFillDate().toLocalDate(), e.getCurrency()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private BigDecimal calculateExecutionTimeValueBase(Execution execution) {
-        BigDecimal exchangeRate = exchangeRateService.getExchangeRate(execution.getFillDate().toLocalDate(), execution.getCurrency());
-        return execution.getTimeValue().divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
+    private BigDecimal timeValueSum(List<Execution> executions, Types.Action action) {
+        return executions.stream()
+                .filter(e -> e.getAction() == action)
+                .map(e -> valueBase(e.getTimeValue(), e.getFillDate().toLocalDate(), e.getCurrency()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal valueBase(BigDecimal value, LocalDate date, Currency  currency) {
+        BigDecimal exchangeRate = exchangeRateService.getExchangeRate(date, currency);
+        return value.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
     }
 
     private LocalDateTime firstDate(List<Trade> trades) {
