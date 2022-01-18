@@ -48,7 +48,7 @@ public class StatisticsHelper {
         String currencyKey = currency == null || ALL.equals(currency) ? ALL : currency;
         String underlyingKey = underlying == null ? ALL : underlying;
 
-        return intervalKey != null ? intervalKey + "_" : "" + tradeTypeKey + "_" + secTypeKey + "_" + currencyKey + "_" + underlyingKey;
+        return (intervalKey != null ? intervalKey + "_" : "") + tradeTypeKey + "_" + secTypeKey + "_" + currencyKey + "_" + underlyingKey;
     }
 
     public <T extends Enum<T>> T normalizeEnumParam(String param, Class<T> enumType) {
@@ -77,29 +77,19 @@ public class StatisticsHelper {
     }
 
     public LocalDateTime firstDate(List<Trade> trades) {
-        return Objects.requireNonNull(trades.stream()
-                .map(Trade::getOpenDate)
+        return trades.stream()
+                .flatMap(t -> t.getExecutions().stream())
+                .map(Execution::getFillDate)
                 .min(LocalDateTime::compareTo)
-                .orElse(null));
+                .orElse(null);
     }
 
     public LocalDateTime lastDate(List<Trade> trades) {
-        LocalDateTime lastDate;
-        LocalDateTime lastDateOpened = trades.get(0).getOpenDate();
-        LocalDateTime lastDateClosed = trades.get(0).getCloseDate();
-
-        for (Trade t: trades) {
-            if (t.getOpenDate().isAfter(lastDateOpened)) {
-                lastDateOpened = t.getOpenDate();
-            }
-        }
-        for (Trade t: trades) {
-            if (t.getCloseDate() != null && (lastDateClosed == null || t.getCloseDate().isAfter(lastDateClosed))) {
-                lastDateClosed = t.getCloseDate();
-            }
-        }
-        lastDate = (lastDateClosed == null || lastDateOpened.isAfter(lastDateClosed) ? lastDateOpened : lastDateClosed);
-        return lastDate;
+        return trades.stream()
+                .flatMap(t -> t.getExecutions().stream())
+                .map(Execution::getFillDate)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
     }
 
     public List<Trade> getTradesOpenedForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {

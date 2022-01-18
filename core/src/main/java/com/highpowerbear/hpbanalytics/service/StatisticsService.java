@@ -1,6 +1,7 @@
 package com.highpowerbear.hpbanalytics.service;
 
 import com.highpowerbear.hpbanalytics.common.HanUtil;
+import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.config.WsTopic;
 import com.highpowerbear.hpbanalytics.database.DataFilters;
 import com.highpowerbear.hpbanalytics.database.Execution;
@@ -8,6 +9,7 @@ import com.highpowerbear.hpbanalytics.database.Trade;
 import com.highpowerbear.hpbanalytics.database.TradeRepository;
 import com.highpowerbear.hpbanalytics.enums.Currency;
 import com.highpowerbear.hpbanalytics.enums.TradeType;
+import com.highpowerbear.hpbanalytics.model.ExecutionContract;
 import com.highpowerbear.hpbanalytics.model.Statistics;
 import com.highpowerbear.hpbanalytics.service.helper.StatisticsHelper;
 import com.ib.client.Types;
@@ -95,7 +97,7 @@ public class StatisticsService {
     }
 
     @Async("taskExecutor")
-    public void calculateCurrentStatistics(String tradeType, String secType, String currency, String underlying) {
+    public void calculateCurrentStatistics(String tradeType, String secType, String currency, String underlying, boolean reload) {
         log.info("BEGIN current statistics calculation for tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
 
         LocalDateTime periodDate = helper.toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS);
@@ -116,6 +118,26 @@ public class StatisticsService {
         helper.currentStatisticsMap().put(helper.statisticsKey(null, tradeType, secType, currency, underlying), List.of(daily, monthly, yearly));
 
         log.info("END current statistics calculation, included " + trades.size() + " trades");
+        if (reload) {
+            messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS);
+        }
+    }
+
+    public void calculateAllCurrentStatisticsForExecution(ExecutionContract ec) {
+        String all = HanSettings.ALL;
+        String ttLong = TradeType.LONG.name();
+        String ttShort = TradeType.SHORT.name();
+        String secType = ec.secType().name();
+        String currency = ec.currency().name();
+        String undl = ec.execution().getUnderlying();
+
+        calculateCurrentStatistics(ttLong, secType, currency, undl, false);
+        calculateCurrentStatistics(ttLong, all, currency, undl, false);
+        calculateCurrentStatistics(ttShort, secType, currency, undl, false);
+        calculateCurrentStatistics(ttShort, all, currency, undl, false);
+        calculateCurrentStatistics(all, secType, currency, undl, false);
+        calculateCurrentStatistics(all, all, currency, undl, false);
+
         messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS);
     }
 

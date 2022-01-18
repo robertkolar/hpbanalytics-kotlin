@@ -176,8 +176,8 @@ public class AppRestController {
 
         List<Statistics> items = statisticsService.getStatistics(interval, tradeType, secType, currency, underlying, null);
         Collections.reverse(items);
-
         int total = items.size();
+
         return ResponseEntity.ok(new GenericList<>(page(items, start, limit, total), total));
     }
 
@@ -191,8 +191,8 @@ public class AppRestController {
             @RequestParam("limit") int limit) {
 
         List<Statistics> items = statisticsService.getCurrentStatistics(tradeType, secType, currency, underlying);
-
         int total = items.size();
+
         return ResponseEntity.ok(new GenericList<>(page(items, start, limit, total), total));
     }
 
@@ -218,7 +218,7 @@ public class AppRestController {
     @RequestMapping(method = RequestMethod.POST, value = "statistics/current")
     public ResponseEntity<?> calculateCurrentStatistics(@RequestBody CalculateStatisticsRequest r) {
 
-        statisticsService.calculateCurrentStatistics(r.getTradeType(), r.getSecType(), r.getCurrency(), r.getUnderlying());
+        statisticsService.calculateCurrentStatistics(r.getTradeType(), r.getSecType(), r.getCurrency(), r.getUnderlying(), true);
         return ResponseEntity.ok().build();
     }
 
@@ -231,7 +231,6 @@ public class AppRestController {
             @RequestParam(required = false, value = "underlying") String underlying) {
 
         List<Statistics> statistics = statisticsService.getStatistics(interval, tradeType, secType, currency, underlying, 120);
-
         return ResponseEntity.ok(new GenericList<>(statistics, statistics.size()));
     }
 
