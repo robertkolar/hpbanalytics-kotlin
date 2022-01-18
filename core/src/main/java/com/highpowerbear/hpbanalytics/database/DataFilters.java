@@ -42,7 +42,7 @@ public class DataFilters {
         return (root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (tradeType != null) {
-                predicates.add(builder.equal(root.get("tradeType"), tradeType));
+                predicates.add(builder.equal(root.get("type"), tradeType));
             }
             if (secType != null) {
                 predicates.add(builder.equal(root.get("secType"), secType));
