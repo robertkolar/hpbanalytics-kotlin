@@ -12,7 +12,7 @@ public class WsTopic {
     public static final String EXECUTION = "execution";
     public static final String TRADE = "trade";
     public static final String STATISTICS = "statistics";
-    public static final String CURRENT_STATISTICS = "currentStatistics";
+    public static final String CURRENT_STATISTICS = "current-statistics";
 
     // settings
     public static final String TOPIC_PREFIX = "/topic";

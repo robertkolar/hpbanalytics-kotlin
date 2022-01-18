@@ -13,9 +13,16 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
 
     init: function() {
         var me = this,
+            currentStatistics = me.getStore('currentStatistics'),
             statistics = me.getStore('statistics'),
             charts = me.getStore('charts'),
+            cWsStatusField = me.lookupReference('cWsStatus'),
             wsStatusField = me.lookupReference('wsStatus');
+
+        if (currentStatistics) {
+            currentStatistics.getProxy().setUrl(HanGui.common.Definitions.urlPrefix + '/statistics/current');
+            me.reloadCurrentStatistics();
+        }
 
         if (statistics) {
             statistics.getProxy().setUrl(HanGui.common.Definitions.urlPrefix + '/statistics');
@@ -23,6 +30,7 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
             me.reloadStatisticsAndCharts();
         }
 
+        me.prepareCurrentUnderlyingCombo();
         me.prepareUnderlyingCombo();
         me.prepareIfiYearMonthCombos();
 
@@ -33,9 +41,17 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
 
         stompClient.connect({}, function(frame) {
             console.log('WS statistics connected');
+            cWsStatusField.update('WS connected');
+            cWsStatusField.addCls('han-connected');
+
             wsStatusField.update('WS connected');
             wsStatusField.addCls('han-connected');
 
+            stompClient.subscribe('/topic/current-statistics', function(message) {
+                if (message.body.startsWith('reloadRequest')) {
+                    currentStatistics.reload();
+                }
+            });
             stompClient.subscribe('/topic/statistics', function(message) {
                 if (message.body.startsWith('reloadRequest')) {
                     statistics.reload();
@@ -45,9 +61,34 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
         }, function() {
             console.log('WS statistics disconnected');
 
+            cWsStatusField.update('WS disconnected');
+            cWsStatusField.removeCls('han-connected');
+            cWsStatusField.addCls('han-disconnected');
+
             wsStatusField.update('WS disconnected');
             wsStatusField.removeCls('han-connected');
             wsStatusField.addCls('han-disconnected');
+        });
+    },
+
+    reloadCurrentStatistics: function() {
+        var me = this,
+            currentStatistics = me.getStore('currentStatistics'),
+            proxy = currentStatistics.getProxy(),
+            tradeType  = me.lookupReference('cTradeTypeCombo').getValue(),
+            secType  = me.lookupReference('cSecTypeCombo').getValue(),
+            currency  = me.lookupReference('cCurrencyCombo').getValue(),
+            underlying =  me.lookupReference('cUnderlyingCombo').getValue();
+
+        proxy.setExtraParam('tradeType', tradeType);
+        proxy.setExtraParam('secType', secType);
+        proxy.setExtraParam('currency', currency);
+        proxy.setExtraParam('underlying', underlying);
+
+        currentStatistics.load(function(records, operation, success) {
+            if (success) {
+                console.log('reloaded current statistics for underlying=' + underlying);
+            }
         });
     },
 
@@ -97,15 +138,27 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
         });
     },
 
+    prepareCurrentUnderlyingCombo: function() {
+        var me = this,
+            underlyingCombo =  me.lookupReference('cUnderlyingCombo'),
+            openOnlyCheckbox = me.lookupReference('cOpenOnlyCheckbox');
+
+        me.populateUnderlyingCombo(underlyingCombo, openOnlyCheckbox.getValue());
+    },
+
     prepareUnderlyingCombo: function() {
         var me = this,
             underlyingCombo =  me.lookupReference('underlyingCombo'),
             openOnlyCheckbox = me.lookupReference('openOnlyCheckbox');
 
+        me.populateUnderlyingCombo(underlyingCombo, openOnlyCheckbox.getValue());
+    },
+
+    populateUnderlyingCombo: function(combo, openOnly) {
         Ext.Ajax.request({
             method: 'GET',
             url: HanGui.common.Definitions.urlPrefix + '/statistics/underlyings',
-            params: {'openOnly': openOnlyCheckbox.getValue()},
+            params: {'openOnly': openOnly},
 
             success: function(response, opts) {
                 var undls = Ext.decode(response.responseText);
@@ -114,8 +167,8 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
                 for (var i = 0; i < undls.length; i++) {
                     undlsData.push([undls[i], undls[i]]);
                 }
-                underlyingCombo.getStore().loadData(undlsData);
-                underlyingCombo.setValue('ALL');
+                combo.getStore().loadData(undlsData);
+                combo.setValue('ALL');
             }
         });
     },
@@ -148,6 +201,29 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
                 ifiEndMonthCombo.getStore().loadData(ifiEndMonthsData);
                 var defaultEndMonth = ifiEndMonthCombo.getStore().getAt(ifiEndMonthsData.length - 1);
                 ifiEndMonthCombo.setValue(defaultEndMonth);
+            }
+        });
+    },
+
+    onCalculateCurrentStatistics: function(button, evt) {
+        var me = this,
+            tradeType =  me.lookupReference('cTradeTypeCombo').getValue(),
+            secType =  me.lookupReference('cSecTypeCombo').getValue(),
+            currency =  me.lookupReference('cCurrencyCombo').getValue(),
+            underlying =  me.lookupReference('cUnderlyingCombo').getValue();
+
+        Ext.Ajax.request({
+            method: 'POST',
+            url: HanGui.common.Definitions.urlPrefix + '/statistics/current',
+            jsonData: {
+                tradeType: tradeType,
+                secType: secType,
+                currency: currency,
+                underlying: underlying
+            },
+
+            success: function(response, opts) {
+                me.reloadCurrentStatistics();
             }
         });
     },

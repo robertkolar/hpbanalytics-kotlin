@@ -148,8 +148,10 @@ public class StatisticsService {
 
     private Statistics calculateCurrent(List<Trade> trades, ChronoUnit interval) {
         Statistics statistics = calculatePeriod(trades, interval, helper.toBeginOfPeriod(LocalDateTime.now(), interval));
+        int id = interval == ChronoUnit.DAYS ? 1 : (interval == ChronoUnit.MONTHS ? 2 : 3);
+
         return statistics
-                .setId(1)
+                .setId(id)
                 .setCumulProfitLoss(statistics.getProfitLoss());
     }
 

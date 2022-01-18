@@ -8,6 +8,7 @@ Ext.define('HanGui.view.statistics.Statistics', {
         'Ext.layout.container.VBox',
         'HanGui.view.statistics.StatisticsController',
         'HanGui.view.statistics.StatisticsModel',
+        'HanGui.view.statistics.CurrentStatisticsGrid',
         'HanGui.view.statistics.StatisticsGrid'
     ],
 
@@ -25,6 +26,9 @@ Ext.define('HanGui.view.statistics.Statistics', {
     },
     scrollable: true,
     items: [{
+        xtype: 'han-current-statistics-grid',
+        reference: 'currentStatisticsGrid'
+    }, {
         xtype: 'han-statistics-grid',
         reference: 'statisticsGrid'
     }, {
