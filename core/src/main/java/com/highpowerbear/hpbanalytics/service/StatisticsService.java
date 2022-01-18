@@ -1,8 +1,6 @@
 package com.highpowerbear.hpbanalytics.service;
 
-import com.hazelcast.core.HazelcastInstance;
 import com.highpowerbear.hpbanalytics.common.HanUtil;
-import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.config.WsTopic;
 import com.highpowerbear.hpbanalytics.database.DataFilters;
 import com.highpowerbear.hpbanalytics.database.Execution;
@@ -11,6 +9,7 @@ import com.highpowerbear.hpbanalytics.database.TradeRepository;
 import com.highpowerbear.hpbanalytics.enums.Currency;
 import com.highpowerbear.hpbanalytics.enums.TradeType;
 import com.highpowerbear.hpbanalytics.model.Statistics;
+import com.highpowerbear.hpbanalytics.service.helper.StatisticsHelper;
 import com.ib.client.Types;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,12 +21,14 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+import static com.highpowerbear.hpbanalytics.config.HanSettings.ALL;
 
 /**
  * Created by robertk on 4/26/2015.
@@ -37,30 +38,25 @@ public class StatisticsService {
     private static final Logger log = LoggerFactory.getLogger(StatisticsService.class);
 
     private final TradeRepository tradeRepository;
-    private final HazelcastInstance hanHazelcastInstance;
     private final MessageService messageService;
     private final TradeCalculationService tradeCalculationService;
-    private final ExchangeRateService exchangeRateService;
-
-    private final String ALL = "ALL";
+    private final StatisticsHelper helper;
 
     @Autowired
     public StatisticsService(TradeRepository tradeRepository,
-                             HazelcastInstance hanHazelcastInstance,
                              MessageService messageService,
                              TradeCalculationService tradeCalculationService,
-                             ExchangeRateService exchangeRateService) {
+                             StatisticsHelper helper) {
 
         this.tradeRepository = tradeRepository;
-        this.hanHazelcastInstance = hanHazelcastInstance;
         this.messageService = messageService;
         this.tradeCalculationService = tradeCalculationService;
-        this.exchangeRateService = exchangeRateService;
+        this.helper = helper;
     }
 
     public List<Statistics> getStatistics(ChronoUnit interval, String tradeType, String secType, String currency, String underlying, Integer maxPoints) {
 
-        List<Statistics> statisticsList = statisticsMap().get(statisticsKey(interval, tradeType, secType, currency, underlying));
+        List<Statistics> statisticsList = helper.statisticsMap().get(helper.statisticsKey(interval, tradeType, secType, currency, underlying));
         if (statisticsList == null) {
             return Collections.emptyList();
         }
@@ -74,7 +70,7 @@ public class StatisticsService {
     }
 
     public List<Statistics> getCurrentStatistics(String tradeType, String secType, String currency, String underlying) {
-        List<Statistics> currentStatisticsList = currentStatisticsMap().get(statisticsKey(null, tradeType, secType, currency, underlying));
+        List<Statistics> currentStatisticsList = helper.currentStatisticsMap().get(helper.statisticsKey(null, tradeType, secType, currency, underlying));
         return Objects.requireNonNullElse(currentStatisticsList, Collections.emptyList());
     }
 
@@ -83,16 +79,16 @@ public class StatisticsService {
         log.info("BEGIN statistics calculation for interval=" + interval + ", tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
 
         Example<Trade> tradeExample = DataFilters.tradeExample(
-                normalizeEnumParam(tradeType, TradeType.class),
-                normalizeEnumParam(secType, Types.SecType.class),
-                normalizeEnumParam(currency, Currency.class),
+                helper.normalizeEnumParam(tradeType, TradeType.class),
+                helper.normalizeEnumParam(secType, Types.SecType.class),
+                helper.normalizeEnumParam(currency, Currency.class),
                 ALL.equals(underlying) ? null : underlying);
 
         List<Trade> trades = tradeRepository.findAll(tradeExample, Sort.by(Sort.Direction.ASC, "openDate"));
 
         log.info("found " + trades.size() + " trades matching the filter criteria, calculating statistics...");
         List<Statistics> statisticsList = calculate(trades, interval);
-        statisticsMap().put(statisticsKey(interval, tradeType, secType, currency, underlying), statisticsList);
+        helper.statisticsMap().put(helper.statisticsKey(interval, tradeType, secType, currency, underlying), statisticsList);
 
         log.info("END statistics calculation for interval=" + interval + ", included " + trades.size() + " trades");
         messageService.sendWsReloadRequestMessage(WsTopic.STATISTICS);
@@ -102,11 +98,11 @@ public class StatisticsService {
     public void calculateCurrentStatistics(String tradeType, String secType, String currency, String underlying) {
         log.info("BEGIN current statistics calculation for tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
 
-        LocalDateTime periodDate = toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS);
+        LocalDateTime periodDate = helper.toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS);
         Specification<Trade> tradeSpecification = DataFilters.tradeSpecification(
-                normalizeEnumParam(tradeType, TradeType.class),
-                normalizeEnumParam(secType, Types.SecType.class),
-                normalizeEnumParam(currency, Currency.class),
+                helper.normalizeEnumParam(tradeType, TradeType.class),
+                helper.normalizeEnumParam(secType, Types.SecType.class),
+                helper.normalizeEnumParam(currency, Currency.class),
                 ALL.equals(underlying) ? null : underlying,
                 periodDate
         );
@@ -117,26 +113,10 @@ public class StatisticsService {
         Statistics monthly = calculateCurrent(trades, ChronoUnit.MONTHS);
         Statistics yearly = calculateCurrent(trades, ChronoUnit.YEARS);
 
-        currentStatisticsMap().put(statisticsKey(null, tradeType, secType, currency, underlying), List.of(daily, monthly, yearly));
+        helper.currentStatisticsMap().put(helper.statisticsKey(null, tradeType, secType, currency, underlying), List.of(daily, monthly, yearly));
 
         log.info("END current statistics calculation, included " + trades.size() + " trades");
         messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS);
-    }
-
-    private String statisticsKey(ChronoUnit interval, String tradeType, String secType, String currency, String underlying) {
-
-        String intervalKey = interval != null ? interval.name() : null;
-        String tradeTypeKey = tradeType == null || ALL.equals(tradeType) ? ALL : tradeType;
-        String secTypeKey = secType == null || ALL.equals(secType) ? ALL : secType;
-        String currencyKey = currency == null || ALL.equals(currency) ? ALL : currency;
-        String underlyingKey = underlying == null ? ALL : underlying;
-
-        return intervalKey != null ? intervalKey + "_" : "" + tradeTypeKey + "_" + secTypeKey + "_" + currencyKey + "_" + underlyingKey;
-    }
-
-    private <T extends Enum<T>> T normalizeEnumParam(String param, Class<T> enumType) {
-
-        return param == null || ALL.equals(param) ? null : T.valueOf(enumType, param);
     }
 
     private List<Statistics> calculate(List<Trade> trades, ChronoUnit interval) {
@@ -145,8 +125,8 @@ public class StatisticsService {
             return statisticsList;
         }
 
-        LocalDateTime firstPeriodDate = toBeginOfPeriod(firstDate(trades), interval);
-        LocalDateTime lastPeriodDate = toBeginOfPeriod(lastDate(trades), interval);
+        LocalDateTime firstPeriodDate = helper.toBeginOfPeriod(helper.firstDate(trades), interval);
+        LocalDateTime lastPeriodDate = helper.toBeginOfPeriod(helper.lastDate(trades), interval);
         LocalDateTime periodDate = firstPeriodDate;
 
         BigDecimal cumulProfitLoss = BigDecimal.ZERO;
@@ -167,7 +147,7 @@ public class StatisticsService {
     }
 
     private Statistics calculateCurrent(List<Trade> trades, ChronoUnit interval) {
-        Statistics statistics = calculatePeriod(trades, interval, toBeginOfPeriod(LocalDateTime.now(), interval));
+        Statistics statistics = calculatePeriod(trades, interval, helper.toBeginOfPeriod(LocalDateTime.now(), interval));
         return statistics
                 .setId(1)
                 .setCumulProfitLoss(statistics.getProfitLoss());
@@ -178,9 +158,9 @@ public class StatisticsService {
             return new Statistics();
         }
 
-        List<Trade> tradesOpenedForPeriod = getTradesOpenedForPeriod(trades, periodDate, interval);
-        List<Trade> tradesClosedForPeriod = getTradesClosedForPeriod(trades, periodDate, interval);
-        List<Execution> executionsForPeriod = getExecutionsForPeriod(trades, periodDate, interval);
+        List<Trade> tradesOpenedForPeriod = helper.getTradesOpenedForPeriod(trades, periodDate, interval);
+        List<Trade> tradesClosedForPeriod = helper.getTradesClosedForPeriod(trades, periodDate, interval);
+        List<Execution> executionsForPeriod = helper.getExecutionsForPeriod(trades, periodDate, interval);
 
         int numWinners = 0;
         int numLosers = 0;
@@ -230,102 +210,11 @@ public class StatisticsService {
                 .setBigLoser(bigLoser)
                 .setWinnersProfit(winnersProfit)
                 .setLosersLoss(losersLoss)
-                .setValueBought(valueSum(executionsForPeriod, Types.Action.BUY))
-                .setValueSold(valueSum(executionsForPeriod, Types.Action.SELL))
-                .setTimeValueBought(timeValueSum(executionsForPeriod, Types.Action.BUY))
-                .setTimeValueSold(timeValueSum(executionsForPeriod, Types.Action.SELL))
+                .setValueBought(helper.valueSum(executionsForPeriod, Types.Action.BUY))
+                .setValueSold(helper.valueSum(executionsForPeriod, Types.Action.SELL))
+                .setTimeValueBought(helper.timeValueSum(executionsForPeriod, Types.Action.BUY))
+                .setTimeValueSold(helper.timeValueSum(executionsForPeriod, Types.Action.SELL))
                 .setProfitLoss(profitLoss)
                 .setProfitLossTaxReport(profitLossTaxReport);
-    }
-
-    private BigDecimal valueSum(List<Execution> executions, Types.Action action) {
-        return executions.stream()
-                .filter(e -> e.getAction() == action)
-                .map(e -> valueBase(e.getValue(), e.getFillDate().toLocalDate(), e.getCurrency()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private BigDecimal timeValueSum(List<Execution> executions, Types.Action action) {
-        return executions.stream()
-                .filter(e -> e.getAction() == action)
-                .filter(e -> e.getTimeValue() != null)
-                .map(e -> valueBase(e.getTimeValue(), e.getFillDate().toLocalDate(), e.getCurrency()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private BigDecimal valueBase(BigDecimal value, LocalDate date, Currency  currency) {
-        BigDecimal exchangeRate = exchangeRateService.getExchangeRate(date, currency);
-        return value.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
-    }
-
-    private LocalDateTime firstDate(List<Trade> trades) {
-        return Objects.requireNonNull(trades.stream()
-                .map(Trade::getOpenDate)
-                .min(LocalDateTime::compareTo)
-                .orElse(null));
-    }
-
-    private LocalDateTime lastDate(List<Trade> trades) {
-        LocalDateTime lastDate;
-        LocalDateTime lastDateOpened = trades.get(0).getOpenDate();
-        LocalDateTime lastDateClosed = trades.get(0).getCloseDate();
-
-        for (Trade t: trades) {
-            if (t.getOpenDate().isAfter(lastDateOpened)) {
-                lastDateOpened = t.getOpenDate();
-            }
-        }
-        for (Trade t: trades) {
-            if (t.getCloseDate() != null && (lastDateClosed == null || t.getCloseDate().isAfter(lastDateClosed))) {
-                lastDateClosed = t.getCloseDate();
-            }
-        }
-        lastDate = (lastDateClosed == null || lastDateOpened.isAfter(lastDateClosed) ? lastDateOpened : lastDateClosed);
-        return lastDate;
-    }
-
-    private List<Trade> getTradesOpenedForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {
-        return trades.stream()
-                .filter(t -> toBeginOfPeriod(t.getOpenDate(), interval).isEqual(periodDate))
-                .collect(Collectors.toList());
-    }
-
-    private List<Trade> getTradesClosedForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {
-        return trades.stream()
-                .filter(t -> t.getCloseDate() != null)
-                .filter(t -> toBeginOfPeriod(t.getCloseDate(), interval).isEqual(periodDate))
-                .collect(Collectors.toList());
-    }
-
-    private List<Execution> getExecutionsForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {
-        return trades.stream()
-                .flatMap(t -> t.getExecutions().stream())
-                .filter(e -> toBeginOfPeriod(e.getFillDate(), interval).isEqual(periodDate))
-                .distinct()
-                .collect(Collectors.toList());
-    }
-
-    private LocalDateTime toBeginOfPeriod(LocalDateTime localDateTime, ChronoUnit interval) {
-        LocalDate localDate = localDateTime.toLocalDate();
-
-        if (ChronoUnit.YEARS.equals(interval)) {
-            localDate = localDate.withDayOfYear(1);
-
-        } else if (ChronoUnit.MONTHS.equals(interval)) {
-            localDate = localDate.withDayOfMonth(1);
-
-        } else if (!ChronoUnit.DAYS.equals(interval)) {
-            throw new IllegalStateException("unsupported statistics interval " + interval);
-        }
-
-        return localDate.atStartOfDay();
-    }
-
-    private Map<String, List<Statistics>> statisticsMap() {
-        return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_STATISTICS_MAP_NAME);
-    }
-
-    private Map<String, List<Statistics>> currentStatisticsMap() {
-        return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_CURRENT_STATISTICS_MAP_NAME);
     }
 }

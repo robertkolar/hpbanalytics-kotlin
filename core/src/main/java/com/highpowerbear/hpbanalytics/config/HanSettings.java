@@ -31,4 +31,5 @@ public class HanSettings {
     public static final String DB_SCHEMA = "hpbanalytics";
 
     public static final String WS_RELOAD_REQUEST_MESSAGE = "reloadRequest";
+    public static final String ALL = "ALL";
 }
