@@ -66,7 +66,7 @@ public class ExecutionListenerService implements InitializingService {
 
                 log.info("consumed execution from the hazelcast queue " + execution);
                 analyticsService.addExecution(execution);
-                statisticsService.calculateAllCurrentStatisticsForExecution(execution);
+                statisticsService.calculateCurrentStatisticsOnExecution(execution);
 
             } catch (HazelcastInstanceNotActiveException he) {
                 log.error(he.getMessage() + " ... stopping hazelcast consumer task");

@@ -98,7 +98,6 @@ public class ExchangeRateService implements ScheduledTaskPerformer {
 
         if (dto == null) {
             String previousDate = HanUtil.formatExchangeRateDate(localDate.minusDays(1));
-            log.warn("exchange rate not available for " + date + ", trying previous day " + previousDate);
 
             dto = getExchangeRateDTO(previousDate);
             if (dto == null) {

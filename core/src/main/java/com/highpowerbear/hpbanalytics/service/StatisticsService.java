@@ -9,7 +9,6 @@ import com.highpowerbear.hpbanalytics.database.Trade;
 import com.highpowerbear.hpbanalytics.database.TradeRepository;
 import com.highpowerbear.hpbanalytics.enums.Currency;
 import com.highpowerbear.hpbanalytics.enums.TradeType;
-import com.highpowerbear.hpbanalytics.model.ExecutionContract;
 import com.highpowerbear.hpbanalytics.model.Statistics;
 import com.highpowerbear.hpbanalytics.service.helper.StatisticsHelper;
 import com.ib.client.Types;
@@ -29,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import static com.highpowerbear.hpbanalytics.config.HanSettings.ALL;
 
@@ -99,17 +99,16 @@ public class StatisticsService {
     public void calculateCurrentStatistics(String tradeType, String secType, String currency, String underlying, boolean reload) {
         log.info("BEGIN current statistics calculation for tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
 
-        LocalDateTime periodDate = helper.toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS);
+        LocalDateTime cutoffDate = helper.toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS);
         Specification<Trade> tradeSpecification = DataFilters.tradeSpecification(
                 helper.normalizeEnumParam(tradeType, TradeType.class),
                 helper.normalizeEnumParam(secType, Types.SecType.class),
                 helper.normalizeEnumParam(currency, Currency.class),
                 ALL.equals(underlying) ? null : underlying,
-                periodDate
+                cutoffDate
         );
         List<Trade> trades = tradeRepository.findAll(tradeSpecification, Sort.by(Sort.Direction.ASC, "openDate"));
 
-        log.info("found " + trades.size() + " trades matching the filter criteria, calculating current statistics...");
         Statistics daily = calculateCurrent(trades, ChronoUnit.DAYS);
         Statistics monthly = calculateCurrent(trades, ChronoUnit.MONTHS);
         Statistics yearly = calculateCurrent(trades, ChronoUnit.YEARS);
@@ -122,14 +121,14 @@ public class StatisticsService {
         }
     }
 
-    public void calculateAllCurrentStatisticsForExecution(Execution execution) {
+    public void calculateCurrentStatisticsOnExecution(Execution execution) {
         String all = HanSettings.ALL;
         String secType = execution.getSecType().name();
-        String currency = execution.getCurrency().name();
         String undl = execution.getUnderlying();
 
-        calculateCurrentStatistics(all, secType, currency, undl, false);
-        calculateCurrentStatistics(all, all, currency, undl, false);
+        Stream.of(all, secType).forEach(st ->
+            Stream.of(all, undl).forEach(u ->
+                calculateCurrentStatistics(all, st, all, u, false)));
 
         messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS);
     }
