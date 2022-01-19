@@ -28,6 +28,7 @@ public class ExecutionListenerService implements InitializingService {
     private final ScheduledExecutorService executorService;
     private final ExecutionMapper executionMapper;
     private final AnalyticsService analyticsService;
+    private final StatisticsService statisticsService;
 
     private final AtomicBoolean hazelcastConsumerRunning = new AtomicBoolean(true);
 
@@ -35,12 +36,14 @@ public class ExecutionListenerService implements InitializingService {
     public ExecutionListenerService(HazelcastInstance hanHazelcastInstance,
                                     ScheduledExecutorService executorService,
                                     ExecutionMapper executionMapper,
-                                    AnalyticsService analyticsService) {
+                                    AnalyticsService analyticsService,
+                                    StatisticsService statisticsService) {
 
         this.hanHazelcastInstance = hanHazelcastInstance;
         this.executorService = executorService;
         this.executionMapper = executionMapper;
         this.analyticsService = analyticsService;
+        this.statisticsService = statisticsService;
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown)); // shutdown hook
     }
@@ -63,6 +66,7 @@ public class ExecutionListenerService implements InitializingService {
 
                 log.info("consumed execution from the hazelcast queue " + execution);
                 analyticsService.addExecution(execution);
+                statisticsService.calculateAllCurrentStatisticsForExecution(execution);
 
             } catch (HazelcastInstanceNotActiveException he) {
                 log.error(he.getMessage() + " ... stopping hazelcast consumer task");

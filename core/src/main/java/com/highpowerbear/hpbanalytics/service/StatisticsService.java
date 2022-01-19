@@ -96,7 +96,6 @@ public class StatisticsService {
         messageService.sendWsReloadRequestMessage(WsTopic.STATISTICS);
     }
 
-    @Async("taskExecutor")
     public void calculateCurrentStatistics(String tradeType, String secType, String currency, String underlying, boolean reload) {
         log.info("BEGIN current statistics calculation for tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
 
@@ -123,18 +122,12 @@ public class StatisticsService {
         }
     }
 
-    public void calculateAllCurrentStatisticsForExecution(ExecutionContract ec) {
+    public void calculateAllCurrentStatisticsForExecution(Execution execution) {
         String all = HanSettings.ALL;
-        String ttLong = TradeType.LONG.name();
-        String ttShort = TradeType.SHORT.name();
-        String secType = ec.secType().name();
-        String currency = ec.currency().name();
-        String undl = ec.execution().getUnderlying();
+        String secType = execution.getSecType().name();
+        String currency = execution.getCurrency().name();
+        String undl = execution.getUnderlying();
 
-        calculateCurrentStatistics(ttLong, secType, currency, undl, false);
-        calculateCurrentStatistics(ttLong, all, currency, undl, false);
-        calculateCurrentStatistics(ttShort, secType, currency, undl, false);
-        calculateCurrentStatistics(ttShort, all, currency, undl, false);
         calculateCurrentStatistics(all, secType, currency, undl, false);
         calculateCurrentStatistics(all, all, currency, undl, false);
 
