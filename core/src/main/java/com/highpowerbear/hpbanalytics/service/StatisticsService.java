@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -76,7 +75,6 @@ public class StatisticsService {
         return Objects.requireNonNullElse(currentStatisticsList, Collections.emptyList());
     }
 
-    @Async("taskExecutor")
     public void calculateStatistics(ChronoUnit interval, String tradeType, String secType, String currency, String underlying) {
         log.info("BEGIN statistics calculation for interval=" + interval + ", tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
 
