@@ -49,12 +49,12 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
 
             stompClient.subscribe('/topic/current-statistics', function(message) {
                 if (message.body.startsWith('reloadRequest')) {
-                    currentStatistics.reload();
+                    me.reloadCurrentStatistics();
                 }
             });
             stompClient.subscribe('/topic/statistics', function(message) {
                 if (message.body.startsWith('reloadRequest')) {
-                    statistics.reload();
+                    me.reloadStatisticsAndCharts();
                 }
             });
 
@@ -220,10 +220,6 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
                 secType: secType,
                 currency: currency,
                 underlying: underlying
-            },
-
-            success: function(response, opts) {
-                me.reloadCurrentStatistics();
             }
         });
     },
@@ -245,10 +241,6 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
                 secType: secType,
                 currency: currency,
                 underlying: underlying
-            },
-
-            success: function(response, opts) {
-                me.reloadStatisticsAndCharts();
             }
         });
     },

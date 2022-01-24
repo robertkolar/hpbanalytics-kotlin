@@ -13,7 +13,7 @@ Ext.define('HanGui.view.statistics.StatisticsModel', {
     stores: {
         currentStatistics: {
             model: 'HanGui.model.CurrentStatistics',
-            pageSize: 10,
+            pageSize: 10
         },
         statistics: {
             model: 'HanGui.model.Statistics',
