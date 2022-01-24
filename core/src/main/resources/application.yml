@@ -1,7 +1,9 @@
 logging:
   file:
     name: hpbanalytics.log
-    max-history: 1
+  logback:
+    rollingpolicy:
+      max-history: 1
 server:
   port: 8080
 spring:
