@@ -1,6 +1,5 @@
 package com.highpowerbear.hpbanalytics.service;
 
-import com.hazelcast.core.HazelcastInstance;
 import com.highpowerbear.hpbanalytics.common.ExchangeRateMapper;
 import com.highpowerbear.hpbanalytics.common.HanUtil;
 import com.highpowerbear.hpbanalytics.config.ApplicationProperties;
@@ -18,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,22 +28,24 @@ public class ExchangeRateService implements ScheduledTaskPerformer {
     private static final Logger log = LoggerFactory.getLogger(ExchangeRateService.class);
 
     private final ExchangeRateRepository exchangeRateRepository;
-    private final HazelcastInstance hanHazelcastInstance;
     private final ExchangeRateMapper exchangeRateMapper;
     private final ApplicationProperties applicationProperties;
+    private final Map<String, ExchangeRateDTO> exchangeRateMap;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Autowired
     public ExchangeRateService(ExchangeRateRepository exchangeRateRepository,
-                               HazelcastInstance hanHazelcastInstance,
                                ExchangeRateMapper exchangeRateMapper,
-                               ApplicationProperties applicationProperties) {
+                               ApplicationProperties applicationProperties,
+                               Map<String, ExchangeRateDTO> exchangeRateMap) {
 
         this.exchangeRateRepository = exchangeRateRepository;
-        this.hanHazelcastInstance = hanHazelcastInstance;
         this.exchangeRateMapper = exchangeRateMapper;
         this.applicationProperties = applicationProperties;
+        this.exchangeRateMap = exchangeRateMap;
+
+        putLastExchangeRate();
     }
 
     @Override
@@ -73,7 +75,7 @@ public class ExchangeRateService implements ScheduledTaskPerformer {
                     .setEurSgd(exchangeRates.getRate(Currency.SGD));
 
             exchangeRateRepository.save(exchangeRate);
-            exchangeRateMap().put(date, exchangeRateMapper.entityToDto(exchangeRate));
+            exchangeRateMap.put(date, exchangeRateMapper.entityToDto(exchangeRate));
         }
 
         log.info("END ExchangeRateRetriever.retrieve");
@@ -108,16 +110,22 @@ public class ExchangeRateService implements ScheduledTaskPerformer {
         return BigDecimal.valueOf(rate);
     }
 
+    private void putLastExchangeRate() {
+        List<ExchangeRate> list = exchangeRateRepository.findFirstByOrderByDateDesc();
+
+        if (!list.isEmpty()) {
+            ExchangeRate lastExchangeRate = list.get(0);
+            exchangeRateMap.put(lastExchangeRate.getDate(), exchangeRateMapper.entityToDto(lastExchangeRate));
+            log.info("last exchange rate found for " + lastExchangeRate.getDate());
+        }
+    }
+
     private ExchangeRateDTO getExchangeRateDTO(String date) {
-        Map<String, ExchangeRateDTO> map = exchangeRateMap();
+        Map<String, ExchangeRateDTO> map = exchangeRateMap;
 
         if (map.get(date) == null) {
             exchangeRateRepository.findById(date).ifPresent(entity -> map.put(date, exchangeRateMapper.entityToDto(entity)));
         }
         return map.get(date);
-    }
-
-    private Map<String, ExchangeRateDTO> exchangeRateMap() {
-        return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_EXCHANGE_RATE_MAP_NAME);
     }
 }

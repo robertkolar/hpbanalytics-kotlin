@@ -1,6 +1,5 @@
 package com.highpowerbear.hpbanalytics.service;
 
-import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
 import com.highpowerbear.hpbanalytics.common.ExecutionMapper;
 import com.highpowerbear.hpbanalytics.common.HanUtil;
@@ -24,26 +23,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ExecutionListenerService implements InitializingService {
     private static final Logger log = LoggerFactory.getLogger(ExecutionListenerService.class);
 
-    private final HazelcastInstance hanHazelcastInstance;
-    private final ScheduledExecutorService executorService;
     private final ExecutionMapper executionMapper;
     private final AnalyticsService analyticsService;
     private final StatisticsService statisticsService;
+    private final BlockingQueue<ExecutionDTO> executionQueue;
+    private final ScheduledExecutorService executorService;
 
     private final AtomicBoolean hazelcastConsumerRunning = new AtomicBoolean(true);
 
     @Autowired
-    public ExecutionListenerService(HazelcastInstance hanHazelcastInstance,
-                                    ScheduledExecutorService executorService,
-                                    ExecutionMapper executionMapper,
+    public ExecutionListenerService(ExecutionMapper executionMapper,
                                     AnalyticsService analyticsService,
-                                    StatisticsService statisticsService) {
+                                    StatisticsService statisticsService,
+                                    BlockingQueue<ExecutionDTO> executionQueue,
+                                    ScheduledExecutorService executorService) {
 
-        this.hanHazelcastInstance = hanHazelcastInstance;
-        this.executorService = executorService;
         this.executionMapper = executionMapper;
         this.analyticsService = analyticsService;
         this.statisticsService = statisticsService;
+        this.executionQueue = executionQueue;
+        this.executorService = executorService;
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown)); // shutdown hook
     }
@@ -55,12 +54,11 @@ public class ExecutionListenerService implements InitializingService {
     }
 
     private void startHazelcastConsumer() {
-        BlockingQueue<ExecutionDTO> queue = hanHazelcastInstance.getQueue(HanSettings.HAZELCAST_EXECUTION_QUEUE_NAME);
         log.info("starting hazelcast consumer");
 
         while (hazelcastConsumerRunning.get()) {
             try {
-                ExecutionDTO dto = queue.take();
+                ExecutionDTO dto = executionQueue.take();
                 Execution execution = executionMapper.dtoToEntity(dto);
                 execution.setSymbol(HanUtil.removeWhiteSpaces(execution.getSymbol()));
 

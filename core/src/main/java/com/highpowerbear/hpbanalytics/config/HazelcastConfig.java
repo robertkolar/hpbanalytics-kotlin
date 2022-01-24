@@ -3,10 +3,18 @@ package com.highpowerbear.hpbanalytics.config;
 import com.hazelcast.config.*;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.highpowerbear.hpbanalytics.model.Statistics;
+import com.highpowerbear.shared.ExchangeRateDTO;
+import com.highpowerbear.shared.ExecutionDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * Created by robertk on 10/4/2020.
@@ -15,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
 public class HazelcastConfig {
     private static final Logger log = LoggerFactory.getLogger(HazelcastConfig.class);
 
-    @Bean
+    @Bean("hanHazelcastInstance")
     public HazelcastInstance hanHazelcastInstance() {
 
         Config config = new Config(HanSettings.HAZELCAST_INSTANCE_NAME)
@@ -28,6 +36,30 @@ public class HazelcastConfig {
         log.info("hazelcast map configs " + config.getMapConfigs());
 
         return Hazelcast.newHazelcastInstance(config);
+    }
+
+    @Bean
+    @DependsOn("hanHazelcastInstance")
+    public Map<String, ExchangeRateDTO> exchangeRateMap() {
+        return hanHazelcastInstance().getMap(HanSettings.HAZELCAST_EXCHANGE_RATE_MAP_NAME);
+    }
+
+    @Bean
+    @DependsOn("hanHazelcastInstance")
+    public BlockingQueue<ExecutionDTO> executionQueue() {
+        return hanHazelcastInstance().getQueue(HanSettings.HAZELCAST_EXECUTION_QUEUE_NAME);
+    }
+
+    @Bean
+    @DependsOn("hanHazelcastInstance")
+    public Map<String, List<Statistics>> statisticsMap() {
+        return hanHazelcastInstance().getMap(HanSettings.HAZELCAST_STATISTICS_MAP_NAME);
+    }
+
+    @Bean
+    @DependsOn("hanHazelcastInstance")
+    public Map<String, List<Statistics>> currentStatisticsMap() {
+        return hanHazelcastInstance().getMap(HanSettings.HAZELCAST_CURRENT_STATISTICS_MAP_NAME);
     }
 
     private QueueConfig executionQueueConfig() {

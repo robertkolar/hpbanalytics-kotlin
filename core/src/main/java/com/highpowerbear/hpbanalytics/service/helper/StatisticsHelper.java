@@ -1,11 +1,9 @@
 package com.highpowerbear.hpbanalytics.service.helper;
 
-import com.hazelcast.core.HazelcastInstance;
 import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.database.Execution;
 import com.highpowerbear.hpbanalytics.database.Trade;
 import com.highpowerbear.hpbanalytics.enums.Currency;
-import com.highpowerbear.hpbanalytics.model.Statistics;
 import com.highpowerbear.hpbanalytics.service.ExchangeRateService;
 import com.ib.client.Types;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +15,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.highpowerbear.hpbanalytics.config.HanSettings.ALL;
@@ -28,14 +25,10 @@ import static com.highpowerbear.hpbanalytics.config.HanSettings.ALL;
 @Component
 public class StatisticsHelper {
 
-    private final HazelcastInstance hanHazelcastInstance;
     private final ExchangeRateService exchangeRateService;
 
     @Autowired
-    public StatisticsHelper(HazelcastInstance hanHazelcastInstance,
-                            ExchangeRateService exchangeRateService) {
-
-        this.hanHazelcastInstance = hanHazelcastInstance;
+    public StatisticsHelper(ExchangeRateService exchangeRateService) {
         this.exchangeRateService = exchangeRateService;
     }
 
@@ -126,13 +119,5 @@ public class StatisticsHelper {
         }
 
         return localDate.atStartOfDay();
-    }
-
-    public Map<String, List<Statistics>> statisticsMap() {
-        return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_STATISTICS_MAP_NAME);
-    }
-
-    public Map<String, List<Statistics>> currentStatisticsMap() {
-        return hanHazelcastInstance.getMap(HanSettings.HAZELCAST_CURRENT_STATISTICS_MAP_NAME);
     }
 }

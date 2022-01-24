@@ -23,10 +23,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Stream;
 
 import static com.highpowerbear.hpbanalytics.config.HanSettings.ALL;
@@ -42,22 +40,31 @@ public class StatisticsService {
     private final MessageService messageService;
     private final TradeCalculationService tradeCalculationService;
     private final StatisticsHelper helper;
+    private final ScheduledExecutorService executorService;
+    private final Map<String, List<Statistics>> statisticsMap;
+    private final Map<String, List<Statistics>> currentStatisticsMap;
 
     @Autowired
     public StatisticsService(TradeRepository tradeRepository,
                              MessageService messageService,
                              TradeCalculationService tradeCalculationService,
-                             StatisticsHelper helper) {
+                             StatisticsHelper helper,
+                             ScheduledExecutorService executorService,
+                             Map<String, List<Statistics>> statisticsMap,
+                             Map<String, List<Statistics>> currentStatisticsMap) {
 
         this.tradeRepository = tradeRepository;
         this.messageService = messageService;
         this.tradeCalculationService = tradeCalculationService;
         this.helper = helper;
+        this.executorService = executorService;
+        this.statisticsMap = statisticsMap;
+        this.currentStatisticsMap = currentStatisticsMap;
     }
 
     public List<Statistics> getStatistics(ChronoUnit interval, String tradeType, String secType, String currency, String underlying, Integer maxPoints) {
 
-        List<Statistics> statisticsList = helper.statisticsMap().get(helper.statisticsKey(interval, tradeType, secType, currency, underlying));
+        List<Statistics> statisticsList = statisticsMap.get(helper.statisticsKey(interval, tradeType, secType, currency, underlying));
         if (statisticsList == null) {
             return Collections.emptyList();
         }
@@ -71,27 +78,29 @@ public class StatisticsService {
     }
 
     public List<Statistics> getCurrentStatistics(String tradeType, String secType, String currency, String underlying) {
-        List<Statistics> currentStatisticsList = helper.currentStatisticsMap().get(helper.statisticsKey(null, tradeType, secType, currency, underlying));
+        List<Statistics> currentStatisticsList = currentStatisticsMap.get(helper.statisticsKey(null, tradeType, secType, currency, underlying));
         return Objects.requireNonNullElse(currentStatisticsList, Collections.emptyList());
     }
 
     public void calculateStatistics(ChronoUnit interval, String tradeType, String secType, String currency, String underlying) {
-        log.info("BEGIN statistics calculation for interval=" + interval + ", tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
+        executorService.execute(() -> { // execute in a new thread
+            log.info("BEGIN statistics calculation for interval=" + interval + ", tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
 
-        Example<Trade> tradeExample = DataFilters.tradeExample(
-                helper.normalizeEnumParam(tradeType, TradeType.class),
-                helper.normalizeEnumParam(secType, Types.SecType.class),
-                helper.normalizeEnumParam(currency, Currency.class),
-                ALL.equals(underlying) ? null : underlying);
+            Example<Trade> tradeExample = DataFilters.tradeExample(
+                    helper.normalizeEnumParam(tradeType, TradeType.class),
+                    helper.normalizeEnumParam(secType, Types.SecType.class),
+                    helper.normalizeEnumParam(currency, Currency.class),
+                    ALL.equals(underlying) ? null : underlying);
 
-        List<Trade> trades = tradeRepository.findAll(tradeExample, Sort.by(Sort.Direction.ASC, "openDate"));
+            List<Trade> trades = tradeRepository.findAll(tradeExample, Sort.by(Sort.Direction.ASC, "openDate"));
 
-        log.info("found " + trades.size() + " trades matching the filter criteria, calculating statistics...");
-        List<Statistics> statisticsList = calculate(trades, interval);
-        helper.statisticsMap().put(helper.statisticsKey(interval, tradeType, secType, currency, underlying), statisticsList);
+            log.info("found " + trades.size() + " trades matching the filter criteria, calculating statistics...");
+            List<Statistics> statisticsList = calculate(trades, interval);
+            statisticsMap.put(helper.statisticsKey(interval, tradeType, secType, currency, underlying), statisticsList);
 
-        log.info("END statistics calculation for interval=" + interval + ", included " + trades.size() + " trades");
-        messageService.sendWsReloadRequestMessage(WsTopic.STATISTICS);
+            log.info("END statistics calculation for interval=" + interval + ", included " + trades.size() + " trades");
+            messageService.sendWsReloadRequestMessage(WsTopic.STATISTICS);
+        });
     }
 
     public void calculateCurrentStatistics(String tradeType, String secType, String currency, String underlying, boolean reload) {
@@ -111,7 +120,7 @@ public class StatisticsService {
         Statistics monthly = calculateCurrent(trades, ChronoUnit.MONTHS);
         Statistics yearly = calculateCurrent(trades, ChronoUnit.YEARS);
 
-        helper.currentStatisticsMap().put(helper.statisticsKey(null, tradeType, secType, currency, underlying), List.of(daily, monthly, yearly));
+        currentStatisticsMap.put(helper.statisticsKey(null, tradeType, secType, currency, underlying), List.of(daily, monthly, yearly));
 
         log.info("END current statistics calculation, included " + trades.size() + " trades");
         if (reload) {
