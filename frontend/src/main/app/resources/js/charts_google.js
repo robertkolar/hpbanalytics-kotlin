@@ -13,14 +13,18 @@ var GoogleChart = (function() {
     };
 
     my.ceateColumnChart = function(items, title, divEl) {
+        my.ceateColumnChartCustomColor(items, title, divEl, 'green', 'red')
+    };
+
+    my.ceateColumnChartCustomColor = function(items, title, divEl, color1, color2) {
         var data = google.visualization.arrayToDataTable(items);
         var options = {
             fontSize: 12,
             title : title,
             legend: 'none',
             series: [
-                {color: 'green'},
-                {color: 'red'}
+                {color: color1},
+                {color: color2}
             ]
         };
         var chart = new google.visualization.ColumnChart(document.getElementById(divEl));

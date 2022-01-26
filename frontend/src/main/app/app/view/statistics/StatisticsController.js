@@ -321,20 +321,20 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
             pctWinners.push([new Date(rd.periodDate), rd.pctWinners]);
             bigWinnerLoser.push([new Date(rd.periodDate), rd.bigWinner, rd.bigLoser]);
             plWinnersLosers.push([new Date(rd.periodDate), rd.winnersProfit, rd.losersLoss]);
-            valueBoughtSold.push([new Date(rd.periodDate), rd.valueBought, rd.valueSold]);
-            timeValueBoughtSold.push([new Date(rd.periodDate), rd.timeValueBought, rd.timeValueSold]);
+            valueBoughtSold.push([new Date(rd.periodDate), rd.valueBought, -rd.valueSold]);
+            timeValueBoughtSold.push([new Date(rd.periodDate), rd.timeValueBought, -rd.timeValueSold]);
         });
 
         GoogleChart.ceateLineChart(cumulativePl, 'Cumulative PL', 'hpb_c1');
         GoogleChart.ceateColumnChart(profitLoss, 'Profit/Loss', 'hpb_c2');
-        GoogleChart.ceateColumnChart(numberExecutions, 'Number Executions', 'hpb_c3');
-        GoogleChart.ceateColumnChart(numberOpenedClosed, 'Number Opened/Closed', 'hpb_c4');
-        GoogleChart.ceateColumnChart(numberWinnersLosers, 'Number Winners/Losers', 'hpb_c5');
-        GoogleChart.ceateColumnChart(pctWinners, 'Percent Winners', 'hpb_c6');
-        GoogleChart.ceateColumnChart(bigWinnerLoser, 'Biggest Winner/Loser', 'hpb_c7');
-        GoogleChart.ceateColumnChart(plWinnersLosers, 'Winners Profit/Losers Loss', 'hpb_c8');
-        GoogleChart.ceateColumnChart(valueBoughtSold, 'Value Bought/Sold', 'hpb_c9');
-        GoogleChart.ceateColumnChart(timeValueBoughtSold, 'Time Value Bought/Sold', 'hpb_c10');
+        GoogleChart.ceateColumnChartCustomColor(valueBoughtSold, 'Value Bought/Sold', 'hpb_c3', 'blue', 'brown');
+        GoogleChart.ceateColumnChartCustomColor(timeValueBoughtSold, 'Time Value Bought/Sold', 'hpb_c4', 'blue', 'brown');
+        GoogleChart.ceateColumnChart(numberExecutions, 'Number Executions', 'hpb_c5');
+        GoogleChart.ceateColumnChart(numberOpenedClosed, 'Number Opened/Closed', 'hpb_c6');
+        GoogleChart.ceateColumnChart(numberWinnersLosers, 'Number Winners/Losers', 'hpb_c7');
+        GoogleChart.ceateColumnChart(pctWinners, 'Percent Winners', 'hpb_c8');
+        GoogleChart.ceateColumnChart(bigWinnerLoser, 'Biggest Winner/Loser', 'hpb_c9');
+        GoogleChart.ceateColumnChart(plWinnersLosers, 'Winners Profit/Losers Loss', 'hpb_c10');
     },
 
     onChartsToggle: function(button, pressed, eOpts) {
@@ -347,6 +347,11 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
         } else {
             chartsContainer.setVisible(false);
         }
+    },
+
+    valueRenderer: function(val, metadata, record) {
+        metadata.style = (val > 0 ? 'color: blue;' : 'color: brown;');
+        return Ext.util.Format.number(val, '0.00');
     },
 
     profitLossRenderer: function(val, metadata, record) {

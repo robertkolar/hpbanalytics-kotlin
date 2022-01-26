@@ -51,6 +51,19 @@ public class Trade implements Serializable {
     @OrderBy("fillDate ASC")
     private List<Execution> executions = new ArrayList<>();
 
+    public BigDecimal getValueSum() {
+        return executions.stream()
+                .map(Execution::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getTimeValueSum() {
+        return executions.stream()
+                .map(Execution::getTimeValue)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     public String getDuration() {
         return closeDate != null ? HanUtil.toDurationString(Duration.between(openDate, closeDate).getSeconds()) : "";
     }

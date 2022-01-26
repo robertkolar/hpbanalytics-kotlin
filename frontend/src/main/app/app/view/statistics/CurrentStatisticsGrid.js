@@ -91,28 +91,32 @@ Ext.define('HanGui.view.statistics.CurrentStatisticsGrid', {
         text: 'Value B',
         width: 100,
         dataIndex: 'valueBought',
-        align: 'right'
+        align: 'right',
+        renderer: 'valueRenderer'
     }, {
         xtype: 'numbercolumn',
         format: '0.00',
         text: 'Value S',
         width: 100,
         dataIndex: 'valueSold',
-        align: 'right'
+        align: 'right',
+        renderer: 'valueRenderer'
     }, {
         xtype: 'numbercolumn',
         format: '0.00',
         text: 'TValue B',
         width: 100,
         dataIndex: 'timeValueBought',
-        align: 'right'
+        align: 'right',
+        renderer: 'valueRenderer'
     }, {
         xtype: 'numbercolumn',
         format: '0.00',
         text: 'TValue S',
         width: 100,
         dataIndex: 'timeValueSold',
-        align: 'right'
+        align: 'right',
+        renderer: 'valueRenderer'
     }, {
         text: 'PL Period',
         width: 100,

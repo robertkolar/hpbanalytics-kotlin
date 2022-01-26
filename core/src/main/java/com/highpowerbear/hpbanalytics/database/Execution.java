@@ -41,6 +41,32 @@ public class Execution implements Serializable {
     @JsonIgnore
     private Trade trade;
 
+    public BigDecimal getValue() {
+        BigDecimal value = fillPrice
+                .multiply(BigDecimal.valueOf(multiplier))
+                .multiply(BigDecimal.valueOf(quantity));
+
+        if (action == Types.Action.SELL) {
+            value = value.negate();
+        }
+        return value;
+    }
+
+    public BigDecimal getTimeValue() {
+        if (inTheMoney == null) {
+            return null;
+        }
+        BigDecimal timeValue = fillPrice
+                .subtract(inTheMoney)
+                .multiply(BigDecimal.valueOf(multiplier))
+                .multiply(BigDecimal.valueOf(quantity));
+
+        if (action == Types.Action.SELL) {
+            timeValue = timeValue.negate();
+        }
+        return timeValue;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -164,22 +190,6 @@ public class Execution implements Serializable {
         return this;
     }
 
-    public BigDecimal getValue() {
-        return fillPrice
-                .multiply(BigDecimal.valueOf(multiplier))
-                .multiply(BigDecimal.valueOf(quantity));
-    }
-
-    public BigDecimal getTimeValue() {
-        if (inTheMoney == null) {
-            return null;
-        }
-        return fillPrice
-                .subtract(inTheMoney)
-                .multiply(BigDecimal.valueOf(multiplier))
-                .multiply(BigDecimal.valueOf(quantity));
-    }
-
     public Trade getTrade() {
         return trade;
     }
@@ -191,10 +201,6 @@ public class Execution implements Serializable {
 
     public Long getTradeId() {
         return trade != null ? trade.getId() : null;
-    }
-
-    public String getTradeExecutionIds() {
-        return trade != null ? trade.getExecutionIds() : null;
     }
 
     @Override
@@ -213,7 +219,6 @@ public class Execution implements Serializable {
                 ", fillPrice=" + fillPrice +
                 ", inTheMoney=" + inTheMoney +
                 ", tradeId=" + getTradeId() +
-                ", tradeExecutionIds=" + getTradeExecutionIds() +
                 '}';
     }
 }

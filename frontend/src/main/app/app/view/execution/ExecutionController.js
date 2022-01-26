@@ -117,6 +117,11 @@ Ext.define('HanGui.view.execution.ExecutionController', {
         return val;
     },
 
+    valueRenderer: function(val, metadata, record) {
+        metadata.style = (val > 0 ? 'color: blue;' : 'color: brown;');
+        return Ext.util.Format.number(val, '0.00');
+    },
+
     priceRenderer: function(val, metadata, record) {
         return Ext.util.Format.number(val, '0.00###');
     }

@@ -39,7 +39,7 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         filter: 'string'
     }, {
         text: 'Sec',
-        width: 80,
+        width: 60,
         dataIndex: 'secType',
         filter: {
             type: 'list',
@@ -47,7 +47,7 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         }
     }, {
         text: 'Cur',
-        width: 80,
+        width: 60,
         dataIndex: 'currency',
         filter: {
             type: 'list',
@@ -61,12 +61,12 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         filter: 'number'
     }, {
         text: 'Qnt',
-        width: 80,
+        width: 60,
         dataIndex: 'cumulativeQuantity',
         align: 'right'
     }, {
         text: 'Pos',
-        width: 80,
+        width: 60,
         dataIndex: 'openPosition',
         align: 'right'
     }, {
@@ -95,14 +95,20 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         format: 'm/d/Y H:i:s'
     }, {
         text: 'Duration',
-        width: 140,
+        width: 100,
         dataIndex: 'duration'
     }, {
         text: 'P/L',
-        width: 100,
+        width: 80,
         dataIndex: 'profitLoss',
         align: 'right',
         renderer: 'profitLossRenderer'
+    }, {
+        text: 'Time Value',
+        width: 100,
+        dataIndex: 'timeValueSum',
+        align: 'right',
+        renderer: 'valueRenderer'
     }, {
         text: 'Execution IDs',
         flex: 1,

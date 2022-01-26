@@ -21,7 +21,7 @@ Ext.define('HanGui.view.trade.TradeExecutionGrid', {
         renderer: 'actionRenderer'
     }, {
         text: 'Qnt',
-        width: 80,
+        width: 60,
         dataIndex: 'quantity',
         align: 'right'
     }, {
@@ -56,9 +56,15 @@ Ext.define('HanGui.view.trade.TradeExecutionGrid', {
         renderer: 'priceRenderer'
     }, {
         text: 'Value',
-        width: 120,
+        width: 100,
         dataIndex: 'value',
         align: 'right',
-        renderer: 'priceRenderer'
+        renderer: 'valueRenderer'
+    }, {
+        text: 'Time Value',
+        width: 100,
+        dataIndex: 'timeValue',
+        align: 'right',
+        renderer: 'valueRenderer'
     }]
 });
