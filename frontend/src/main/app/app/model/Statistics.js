@@ -16,10 +16,9 @@ Ext.define('HanGui.model.Statistics', {
         'bigLoser',
         'winnersProfit',
         'losersLoss',
-        'valueBought',
-        'valueSold',
         'timeValueBought',
         'timeValueSold',
+        'timeValueSum',
         'profitLoss',
         'profitLossTaxReport',
         'cumulProfitLoss'

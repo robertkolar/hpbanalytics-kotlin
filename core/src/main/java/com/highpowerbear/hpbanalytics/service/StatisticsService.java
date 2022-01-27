@@ -221,6 +221,10 @@ public class StatisticsService {
         }
         double pctWinners = !tradesClosedForPeriod.isEmpty() ? ((double) numWinners / (double) tradesClosedForPeriod.size()) * 100.0 : 0.0;
 
+        BigDecimal timeValueBought = helper.timeValueSum(executionsForPeriod, Types.Action.BUY);
+        BigDecimal timeValueSold = helper.timeValueSum(executionsForPeriod, Types.Action.SELL);
+        BigDecimal timeValueSum = timeValueBought.add(timeValueSold);
+
         return new Statistics()
                 .setPeriodDate(periodDate)
                 .setNumExecs(executionsForPeriod.size())
@@ -233,10 +237,9 @@ public class StatisticsService {
                 .setBigLoser(bigLoser)
                 .setWinnersProfit(winnersProfit)
                 .setLosersLoss(losersLoss)
-                .setValueBought(helper.valueSum(executionsForPeriod, Types.Action.BUY))
-                .setValueSold(helper.valueSum(executionsForPeriod, Types.Action.SELL))
-                .setTimeValueBought(helper.timeValueSum(executionsForPeriod, Types.Action.BUY))
-                .setTimeValueSold(helper.timeValueSum(executionsForPeriod, Types.Action.SELL))
+                .setTimeValueBought(timeValueBought)
+                .setTimeValueSold(timeValueSold)
+                .setTimeValueSum(timeValueSum)
                 .setProfitLoss(profitLoss)
                 .setProfitLossTaxReport(profitLossTaxReport);
     }

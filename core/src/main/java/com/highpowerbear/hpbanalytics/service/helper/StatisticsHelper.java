@@ -48,13 +48,6 @@ public class StatisticsHelper {
         return param == null || ALL.equals(param) ? null : T.valueOf(enumType, param);
     }
 
-    public BigDecimal valueSum(List<Execution> executions, Types.Action action) {
-        return executions.stream()
-                .filter(e -> e.getAction() == action)
-                .map(e -> valueBase(e.getValue(), e.getFillDate().toLocalDate(), e.getCurrency()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
     public BigDecimal timeValueSum(List<Execution> executions, Types.Action action) {
         return executions.stream()
                 .filter(e -> e.getAction() == action)

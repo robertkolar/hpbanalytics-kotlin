@@ -287,48 +287,48 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
 
             cumulativePl = [],
             profitLoss = [],
+            timeValueBoughtSold = [],
+            timeValueSum = [],
             numberExecutions = [],
             numberOpenedClosed = [],
             numberWinnersLosers = [],
             pctWinners = [],
             bigWinnerLoser = [],
-            plWinnersLosers = [],
-            valueBoughtSold = [],
-            timeValueBoughtSold = [];
+            plWinnersLosers = [];
 
         if (!Ext.get('hpb_c1')) {
             return;
         }
         cumulativePl.push(['Date', 'Cumulative PL']);
-        profitLoss.push(['Date', 'PL', { role: 'style' }]);
+        profitLoss.push(['Date', 'PL', {role: 'style'}]);
+        timeValueBoughtSold.push(['Date', 'Time Value Bought', 'Time Value Sold']);
+        timeValueSum.push(['Date', 'Time Value Sum', {role: 'style'}]);
         numberExecutions.push(['Date', 'Executions']);
         numberOpenedClosed.push(['Date', 'Opened', 'Closed']);
         numberWinnersLosers.push(['Date', 'Winners', 'Losers']);
         pctWinners.push(['Date', 'Percent Winners']);
         bigWinnerLoser.push(['Date', 'Big Winner', 'Big Loser']);
         plWinnersLosers.push(['Date', 'Winners Profit', 'Losers Loss']);
-        valueBoughtSold.push(['Date', 'Value Bought', 'Value Sold']);
-        timeValueBoughtSold.push(['Date', 'TV Bought', 'TV Sold']);
 
         statistics.each(function (record, id) {
             var rd = record.data;
 
             cumulativePl.push([new Date(rd.periodDate), rd.cumulProfitLoss]);
             profitLoss.push([new Date(rd.periodDate), rd.profitLoss, (rd.profitLoss > 0 ? 'green' : (rd.profitLoss === 0 ? 'white' : 'red'))]);
+            timeValueBoughtSold.push([new Date(rd.periodDate), rd.timeValueBought, -rd.timeValueSold]);
+            timeValueSum.push([new Date(rd.periodDate), rd.timeValueSum, (rd.timeValueSum > 0 ? 'blue' : (rd.timeValueSum === 0 ? 'white' : 'brown'))]);
             numberExecutions.push([new Date(rd.periodDate), rd.numExecs]);
             numberOpenedClosed.push([new Date(rd.periodDate), rd.numOpened, rd.numClosed]);
             numberWinnersLosers.push([new Date(rd.periodDate), rd.numWinners, rd.numLosers]);
             pctWinners.push([new Date(rd.periodDate), rd.pctWinners]);
             bigWinnerLoser.push([new Date(rd.periodDate), rd.bigWinner, rd.bigLoser]);
             plWinnersLosers.push([new Date(rd.periodDate), rd.winnersProfit, rd.losersLoss]);
-            valueBoughtSold.push([new Date(rd.periodDate), rd.valueBought, -rd.valueSold]);
-            timeValueBoughtSold.push([new Date(rd.periodDate), rd.timeValueBought, -rd.timeValueSold]);
         });
 
         GoogleChart.ceateLineChart(cumulativePl, 'Cumulative PL', 'hpb_c1');
         GoogleChart.ceateColumnChart(profitLoss, 'Profit/Loss', 'hpb_c2');
-        GoogleChart.ceateColumnChartCustomColor(valueBoughtSold, 'Value Bought/Sold', 'hpb_c3', 'blue', 'brown');
-        GoogleChart.ceateColumnChartCustomColor(timeValueBoughtSold, 'Time Value Bought/Sold', 'hpb_c4', 'blue', 'brown');
+        GoogleChart.ceateColumnChartCustomColor(timeValueBoughtSold, 'Time Value Bought/Sold', 'hpb_c3', 'blue', 'brown');
+        GoogleChart.ceateColumnChart(timeValueSum, 'Time Value Sum', 'hpb_c4');
         GoogleChart.ceateColumnChart(numberExecutions, 'Number Executions', 'hpb_c5');
         GoogleChart.ceateColumnChart(numberOpenedClosed, 'Number Opened/Closed', 'hpb_c6');
         GoogleChart.ceateColumnChart(numberWinnersLosers, 'Number Winners/Losers', 'hpb_c7');

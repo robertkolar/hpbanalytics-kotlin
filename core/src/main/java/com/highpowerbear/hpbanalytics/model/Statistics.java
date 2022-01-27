@@ -23,10 +23,9 @@ public class Statistics implements Serializable {
     private BigDecimal bigLoser;
     private BigDecimal winnersProfit;
     private BigDecimal losersLoss;
-    private BigDecimal valueBought;
-    private BigDecimal valueSold;
     private BigDecimal timeValueBought;
     private BigDecimal timeValueSold;
+    private BigDecimal timeValueSum;
     private BigDecimal profitLoss;
     private BigDecimal profitLossTaxReport;
     private BigDecimal cumulProfitLoss;
@@ -139,24 +138,6 @@ public class Statistics implements Serializable {
         return this;
     }
 
-    public BigDecimal getValueBought() {
-        return valueBought;
-    }
-
-    public Statistics setValueBought(BigDecimal valueBought) {
-        this.valueBought = valueBought;
-        return this;
-    }
-
-    public BigDecimal getValueSold() {
-        return valueSold;
-    }
-
-    public Statistics setValueSold(BigDecimal valueSold) {
-        this.valueSold = valueSold;
-        return this;
-    }
-
     public BigDecimal getTimeValueBought() {
         return timeValueBought;
     }
@@ -172,6 +153,15 @@ public class Statistics implements Serializable {
 
     public Statistics setTimeValueSold(BigDecimal timeValueSold) {
         this.timeValueSold = timeValueSold;
+        return this;
+    }
+
+    public BigDecimal getTimeValueSum() {
+        return timeValueSum;
+    }
+
+    public Statistics setTimeValueSum(BigDecimal timeValueSum) {
+        this.timeValueSum = timeValueSum;
         return this;
     }
 
@@ -217,10 +207,9 @@ public class Statistics implements Serializable {
                 ", bigLoser=" + bigLoser +
                 ", winnersProfit=" + winnersProfit +
                 ", losersLoss=" + losersLoss +
-                ", valueBought=" + valueBought +
-                ", valueSold=" + valueSold +
                 ", timeValueBought=" + timeValueBought +
                 ", timeValueSold=" + timeValueSold +
+                ", timeValueSum=" + timeValueSum +
                 ", profitLoss=" + profitLoss +
                 ", profitLossTaxReport=" + profitLossTaxReport +
                 ", cumulProfitLoss=" + cumulProfitLoss +

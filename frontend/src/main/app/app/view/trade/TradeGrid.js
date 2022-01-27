@@ -98,17 +98,17 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         width: 100,
         dataIndex: 'duration'
     }, {
+        text: 'TV Sum',
+        width: 100,
+        dataIndex: 'timeValueSum',
+        align: 'right',
+        renderer: 'valueRenderer'
+    }, {
         text: 'P/L',
         width: 80,
         dataIndex: 'profitLoss',
         align: 'right',
         renderer: 'profitLossRenderer'
-    }, {
-        text: 'Time Value',
-        width: 100,
-        dataIndex: 'timeValueSum',
-        align: 'right',
-        renderer: 'valueRenderer'
     }, {
         text: 'Execution IDs',
         flex: 1,

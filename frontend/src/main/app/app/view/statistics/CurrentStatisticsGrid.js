@@ -88,22 +88,6 @@ Ext.define('HanGui.view.statistics.CurrentStatisticsGrid', {
     }, {
         xtype: 'numbercolumn',
         format: '0.00',
-        text: 'Value B',
-        width: 100,
-        dataIndex: 'valueBought',
-        align: 'right',
-        renderer: 'valueRenderer'
-    }, {
-        xtype: 'numbercolumn',
-        format: '0.00',
-        text: 'Value S',
-        width: 100,
-        dataIndex: 'valueSold',
-        align: 'right',
-        renderer: 'valueRenderer'
-    }, {
-        xtype: 'numbercolumn',
-        format: '0.00',
         text: 'TValue B',
         width: 100,
         dataIndex: 'timeValueBought',
@@ -115,6 +99,14 @@ Ext.define('HanGui.view.statistics.CurrentStatisticsGrid', {
         text: 'TValue S',
         width: 100,
         dataIndex: 'timeValueSold',
+        align: 'right',
+        renderer: 'valueRenderer'
+    }, {
+        xtype: 'numbercolumn',
+        format: '0.00',
+        text: 'TVal Sum',
+        width: 100,
+        dataIndex: 'timeValueSum',
         align: 'right',
         renderer: 'valueRenderer'
     }, {
