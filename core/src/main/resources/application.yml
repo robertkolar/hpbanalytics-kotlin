@@ -24,9 +24,4 @@ spring:
           new_generator_mappings: true
         show_sql: false
 application:
-  fixer:
-    url: http://data.fixer.io/api
-    access-key:
-    symbols: EUR,USD,GBP,CHF,AUD,JPY,KRW,HKD,SGD
-    days-back: 3
-
+  ecb-exchange-rate-url: https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml

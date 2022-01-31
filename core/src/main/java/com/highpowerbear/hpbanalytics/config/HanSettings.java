@@ -11,9 +11,9 @@ public class HanSettings {
     }
 
     public static final int SCHEDULED_THREAD_POOL_SIZE = 10;
-
     public static final int IFI_START_YEAR = 2016;
     public static final int DECIMAL_SCALE = 5;
+    public static final int NUMBER_OF_FUTURE_EXCHANGE_RATES = 3;
 
     public static final Currency PORTFOLIO_BASE_CURRENCY = Currency.EUR;
     public static final String EXCHANGE_RATE_DATE_FORMAT = "yyyy-MM-dd";

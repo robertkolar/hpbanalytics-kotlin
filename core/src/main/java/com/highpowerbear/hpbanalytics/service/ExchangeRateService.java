@@ -7,14 +7,23 @@ import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.database.ExchangeRate;
 import com.highpowerbear.hpbanalytics.database.ExchangeRateRepository;
 import com.highpowerbear.hpbanalytics.enums.Currency;
-import com.highpowerbear.hpbanalytics.model.ExchangeRates;
 import com.highpowerbear.shared.ExchangeRateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -45,7 +54,8 @@ public class ExchangeRateService implements ScheduledTaskPerformer {
         this.applicationProperties = applicationProperties;
         this.exchangeRateMap = exchangeRateMap;
 
-        putLastExchangeRate();
+        retrieveExchangeRates();
+        putLastExchangeRate(); // in case of map empty and retrieve fails, to make sure we have at least one entry in the map
     }
 
     @Override
@@ -55,42 +65,88 @@ public class ExchangeRateService implements ScheduledTaskPerformer {
 
     private void retrieveExchangeRates() {
         log.info("BEGIN ExchangeRateRetriever.retrieve");
-        final int daysBack = applicationProperties.getFixer().getDaysBack();
 
-        for (int i = 0; i < daysBack; i++) {
-            LocalDate localDate = LocalDate.now().plusDays(i - daysBack);
-            String date = HanUtil.formatExchangeRateDate(localDate);
+        String url = applicationProperties.getEcbExchangeRateUrl();
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        String content = response.getBody();
 
-            ExchangeRates exchangeRates = retrieve(date);
+        if (content == null) {
+            log.error("unable to retrieve exchange rates");
+            return;
+        }
+        Node timeNode;
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new InputSource(new StringReader(content)));
 
-            ExchangeRate exchangeRate = new ExchangeRate()
-                    .setDate(date)
-                    .setEurUsd(exchangeRates.getRate(Currency.USD))
-                    .setEurGbp(exchangeRates.getRate(Currency.GBP))
-                    .setEurChf(exchangeRates.getRate(Currency.CHF))
-                    .setEurAud(exchangeRates.getRate(Currency.AUD))
-                    .setEurJpy(exchangeRates.getRate(Currency.JPY))
-                    .setEurKrw(exchangeRates.getRate(Currency.KRW))
-                    .setEurHkd(exchangeRates.getRate(Currency.HKD))
-                    .setEurSgd(exchangeRates.getRate(Currency.SGD));
+            timeNode = ((NodeList) XPathFactory.newInstance().newXPath().compile("//Cube[@time]")
+                    .evaluate(doc, XPathConstants.NODESET))
+                    .item(0);
 
-            exchangeRateRepository.save(exchangeRate);
-            exchangeRateMap.put(date, exchangeRateMapper.entityToDto(exchangeRate));
+        } catch (Exception e) {
+            log.error(e.toString());
+            return;
         }
 
+        LocalDate exchangeRateDate = LocalDate.parse(timeNode.getAttributes().item(0).getTextContent());
+        log.info("retrieved exchange rate for " + exchangeRateDate);
+
+        ExchangeRate exchangeRate = new ExchangeRate()
+                .setDate(exchangeRateDate.toString());
+
+        NodeList rateNodes = timeNode.getChildNodes();
+        for (int i = 0; i < rateNodes.getLength(); i ++) {
+            Node rateNode = rateNodes.item(i);
+
+            if (rateNode.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+            Currency currency = Currency.findByValue(rateNode.getAttributes().item(0).getTextContent());
+            Double rate = Double.parseDouble(rateNode.getAttributes().item(1).getTextContent());
+
+            if (currency == null) {
+                continue;
+            }
+            switch(currency) {
+                case USD:
+                    exchangeRate.setEurUsd(rate);
+                    break;
+                case AUD:
+                    exchangeRate.setEurAud(rate);
+                    break;
+                case GBP:
+                    exchangeRate.setEurGbp(rate);
+                    break;
+                case CHF:
+                    exchangeRate.setEurChf(rate);
+                    break;
+                case JPY:
+                    exchangeRate.setEurJpy(rate);
+                    break;
+                case KRW:
+                    exchangeRate.setEurKrw(rate);
+                    break;
+                case HKD:
+                    exchangeRate.setEurHkd(rate);
+                    break;
+                case SGD:
+                    exchangeRate.setEurSgd(rate);
+                    break;
+            }
+        }
+        exchangeRate = exchangeRateRepository.save(exchangeRate);
+        exchangeRateMap.put(exchangeRateDate.toString(), exchangeRateMapper.entityToDto(exchangeRate));
+
+        // create a few exchange rates with future dates to cover the weekends and holidays, will get overwritten for the working days
+        for (int d = 1; d <= HanSettings.NUMBER_OF_FUTURE_EXCHANGE_RATES; d++) {
+            LocalDate futureDate = exchangeRateDate.plusDays(d);
+            exchangeRate.setDate(futureDate.toString());
+
+            exchangeRate = exchangeRateRepository.save(exchangeRate);
+            exchangeRateMap.put(exchangeRateDate.toString(), exchangeRateMapper.entityToDto(exchangeRate));
+        }
         log.info("END ExchangeRateRetriever.retrieve");
-    }
-
-    private ExchangeRates retrieve(String date) {
-        String fixerUrl = applicationProperties.getFixer().getUrl();
-        String fixerAccessKey = applicationProperties.getFixer().getAccessKey();
-        String fixerSymbols = applicationProperties.getFixer().getSymbols();
-
-        String query = fixerUrl + "/" + date + "?access_key=" + fixerAccessKey + "&symbols=" + fixerSymbols;
-        ExchangeRates exchangeRates = restTemplate.getForObject(query, ExchangeRates.class);
-
-        log.info("retrieved exchange rates " + exchangeRates);
-        return exchangeRates;
     }
 
     public BigDecimal getExchangeRate(LocalDate localDate, Currency currency) {
