@@ -70,23 +70,11 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         dataIndex: 'openPosition',
         align: 'right'
     }, {
-        text: 'Open',
-        width: 100,
-        dataIndex: 'avgOpenPrice',
-        align: 'right',
-        renderer: 'priceRenderer'
-    }, {
         text: 'Open Date',
         width: 160,
         dataIndex: 'openDate',
         xtype: 'datecolumn',
         format: 'm/d/Y H:i:s'
-    }, {
-        text: 'Close',
-        width: 100,
-        dataIndex: 'avgClosePrice',
-        align: 'right',
-        renderer: 'priceRenderer'
     }, {
         text: 'Close Date',
         width: 160,
@@ -94,9 +82,17 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         xtype: 'datecolumn',
         format: 'm/d/Y H:i:s'
     }, {
-        text: 'Duration',
+        text: 'Open',
         width: 100,
-        dataIndex: 'duration'
+        dataIndex: 'avgOpenPrice',
+        align: 'right',
+        renderer: 'priceRenderer'
+    }, {
+        text: 'Close',
+        width: 100,
+        dataIndex: 'avgClosePrice',
+        align: 'right',
+        renderer: 'priceRenderer'
     }, {
         text: 'TV Sum',
         width: 100,

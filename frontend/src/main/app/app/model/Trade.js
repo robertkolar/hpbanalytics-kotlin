@@ -15,12 +15,10 @@ Ext.define('HanGui.model.Trade', {
         'openPosition',
         'avgOpenPrice',
         'openDate',
-        'valueSum',
-        'timeValueSum',
         'avgClosePrice',
         'closeDate',
-        'duration',
         'profitLoss',
+        'timeValueSum',
         'executionIds'
     ]
 });

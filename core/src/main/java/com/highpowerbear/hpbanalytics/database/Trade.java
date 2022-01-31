@@ -1,6 +1,5 @@
 package com.highpowerbear.hpbanalytics.database;
 
-import com.highpowerbear.hpbanalytics.common.HanUtil;
 import com.highpowerbear.hpbanalytics.config.HanSettings;
 import com.highpowerbear.hpbanalytics.enums.Currency;
 import com.highpowerbear.hpbanalytics.enums.TradeStatus;
@@ -10,7 +9,6 @@ import com.ib.client.Types;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,30 +45,10 @@ public class Trade implements Serializable {
     private BigDecimal avgClosePrice;
     private LocalDateTime closeDate;
     private BigDecimal profitLoss;
+    private BigDecimal timeValueSum;
     @OneToMany(mappedBy = "trade", fetch = FetchType.EAGER)
     @OrderBy("fillDate ASC")
     private List<Execution> executions = new ArrayList<>();
-
-    public BigDecimal getValueSum() {
-        return executions.stream()
-                .map(Execution::getValue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    public BigDecimal getTimeValueSum() {
-        return executions.stream()
-                .map(Execution::getTimeValue)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    public String getDuration() {
-        return closeDate != null ? HanUtil.toDurationString(Duration.between(openDate, closeDate).getSeconds()) : "";
-    }
-
-    public boolean isOpen() {
-        return TradeStatus.OPEN.equals(status);
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -219,6 +197,15 @@ public class Trade implements Serializable {
 
     public Trade setProfitLoss(BigDecimal profitLoss) {
         this.profitLoss = profitLoss;
+        return this;
+    }
+
+    public BigDecimal getTimeValueSum() {
+        return timeValueSum;
+    }
+
+    public Trade setTimeValueSum(BigDecimal timeValueSum) {
+        this.timeValueSum = timeValueSum;
         return this;
     }
 

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Objects;
 
 /**
  * Created by robertk on 12/25/2017.
@@ -32,8 +33,7 @@ public class TradeCalculationService {
         Execution firstExecution = trade.getExecutions().get(0);
         Execution lastExecution = trade.getExecutions().get(trade.getExecutions().size() - 1);
 
-        trade
-                .setType(firstExecution.getAction() == Types.Action.BUY ? TradeType.LONG : TradeType.SHORT)
+        trade   .setType(firstExecution.getAction() == Types.Action.BUY ? TradeType.LONG : TradeType.SHORT)
                 .setSymbol(firstExecution.getSymbol())
                 .setUnderlying(firstExecution.getUnderlying())
                 .setCurrency(firstExecution.getCurrency())
@@ -64,8 +64,7 @@ public class TradeCalculationService {
 
         BigDecimal avgOpenPrice = cumulativeOpenPrice.divide(BigDecimal.valueOf(cumulativeQuantity), RoundingMode.HALF_UP);
 
-        trade
-                .setOpenPosition(openPosition)
+        trade   .setOpenPosition(openPosition)
                 .setStatus(openPosition != 0 ? TradeStatus.OPEN : TradeStatus.CLOSED)
                 .setCumulativeQuantity(cumulativeQuantity)
                 .setOpenDate(firstExecution.getFillDate())
@@ -74,14 +73,20 @@ public class TradeCalculationService {
         if (trade.getStatus() == TradeStatus.CLOSED) {
             BigDecimal avgClosePrice = cumulativeClosePrice.divide(BigDecimal.valueOf(cumulativeQuantity), RoundingMode.HALF_UP);
 
-            trade
-                    .setAvgClosePrice(avgClosePrice)
+            trade   .setAvgClosePrice(avgClosePrice)
                     .setCloseDate(lastExecution.getFillDate());
 
             BigDecimal cumulativePriceDiff = (TradeType.LONG.equals(tradeType) ? cumulativeClosePrice.subtract(cumulativeOpenPrice) : cumulativeOpenPrice.subtract(cumulativeClosePrice));
             BigDecimal profitLoss = cumulativePriceDiff.multiply(BigDecimal.valueOf(trade.getMultiplier()));
             trade.setProfitLoss(profitLoss);
         }
+
+        BigDecimal timeValueSum = trade.getExecutions().stream()
+                .map(Execution::getTimeValue)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        trade.setTimeValueSum(timeValueSum);
     }
 
     public BigDecimal calculatePlPortfolioBaseOpenClose(Trade trade) {
