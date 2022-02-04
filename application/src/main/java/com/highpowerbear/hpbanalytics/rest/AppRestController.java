@@ -83,6 +83,7 @@ public class AppRestController {
 
         execution.setId(null);
         analyticsService.addExecution(execution);
+        statisticsService.calculateCurrentStatisticsOnExecution(execution);
 
         return ResponseEntity.ok().build();
     }
@@ -96,6 +97,8 @@ public class AppRestController {
         }
 
         analyticsService.deleteExecution(executionId);
+        statisticsService.calculateCurrentStatisticsOnExecution(execution);
+
         return ResponseEntity.ok().build();
     }
 
