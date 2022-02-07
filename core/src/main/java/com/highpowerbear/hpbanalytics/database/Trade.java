@@ -36,10 +36,10 @@ public class Trade implements Serializable {
     @Enumerated(EnumType.STRING)
     private Types.SecType secType;
     private Double multiplier;
-    private Integer cumulativeQuantity;
+    private Double cumulativeQuantity;
     @Enumerated(EnumType.STRING)
     private TradeStatus status;
-    private Integer openPosition;
+    private Double openPosition;
     private BigDecimal avgOpenPrice;
     private LocalDateTime openDate;
     private BigDecimal avgClosePrice;
@@ -128,11 +128,11 @@ public class Trade implements Serializable {
         return this;
     }
 
-    public Integer getCumulativeQuantity() {
+    public Double getCumulativeQuantity() {
         return cumulativeQuantity;
     }
 
-    public Trade setCumulativeQuantity(Integer cumulativeQuantity) {
+    public Trade setCumulativeQuantity(Double cumulativeQuantity) {
         this.cumulativeQuantity = cumulativeQuantity;
         return this;
     }
@@ -146,11 +146,11 @@ public class Trade implements Serializable {
         return this;
     }
 
-    public Integer getOpenPosition() {
+    public Double getOpenPosition() {
         return openPosition;
     }
 
-    public Trade setOpenPosition(Integer openPosition) {
+    public Trade setOpenPosition(Double openPosition) {
         this.openPosition = openPosition;
         return this;
     }

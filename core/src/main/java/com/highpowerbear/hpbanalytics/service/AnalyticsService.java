@@ -219,7 +219,7 @@ public class AnalyticsService {
     private List<Trade> generateTradesSingleContract(List<Execution> executions) {
         List<Trade> trades = new ArrayList<>();
 
-        int currentPos = 0;
+        double currentPos = 0;
         Set<Execution> singleContractSet = new LinkedHashSet<>(executions);
 
         while (!singleContractSet.isEmpty()) {
@@ -229,7 +229,7 @@ public class AnalyticsService {
                 trade.getExecutions().add(execution);
                 execution.setTrade(trade);
 
-                int oldPos = currentPos;
+                double oldPos = currentPos;
                 currentPos += (execution.getAction() == Types.Action.BUY ? execution.getQuantity() : -execution.getQuantity());
 
                 log.info("associated " + execution + ", currentPos=" + currentPos);
@@ -250,7 +250,7 @@ public class AnalyticsService {
         return trades;
     }
 
-    private boolean detectReversal(int oldPos, int currentPos) {
+    private boolean detectReversal(double oldPos, double currentPos) {
         return oldPos > 0 && currentPos < 0 || oldPos < 0 && currentPos > 0;
     }
 }

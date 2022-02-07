@@ -14,7 +14,7 @@ public class ExecutionDTO implements Serializable {
 
     private String reference;
     private Types.Action action;
-    private Integer quantity;
+    private Double quantity;
     private String symbol;
     private String underlying;
     private String currency;
@@ -42,11 +42,11 @@ public class ExecutionDTO implements Serializable {
         return this;
     }
 
-    public Integer getQuantity() {
+    public Double getQuantity() {
         return quantity;
     }
 
-    public ExecutionDTO setQuantity(Integer quantity) {
+    public ExecutionDTO setQuantity(Double quantity) {
         this.quantity = quantity;
         return this;
     }

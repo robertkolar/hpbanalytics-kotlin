@@ -105,7 +105,7 @@ public class TaxReportService {
             tCount++;
             writeTrade(sb, trade, tCount);
             int eCount = 0;
-            int currentPos = 0;
+            double currentPos = 0d;
             for (Execution execution : trade.getExecutions()) {
                 Types.Action action = execution.getAction();
                 currentPos += (action == Types.Action.BUY ? execution.getQuantity() : -execution.getQuantity());
@@ -134,9 +134,7 @@ public class TaxReportService {
         }
 
         sb.append(NL).append("SKUPAJ");
-        for (int k = 0; k < 14; k++) {
-            sb.append(DL);
-        }
+        sb.append(DL.repeat(14));
         sb.append(nf.format(sumPl));
 
         log.info("END IfiCsvGenerator.generate year=" + year + ", tradeType=" + tradeType);
@@ -185,9 +183,7 @@ public class TaxReportService {
             .append(tradeTypeMap.get(trade.getType())).append(DL)
             .append(trade.getSymbol()).append(DL);
 
-        for (int k = 0; k < 10; k++) {
-            sb.append(DL);
-        }
+        sb.append(DL.repeat(10));
         sb.append(NL);
     }
 
@@ -198,17 +194,13 @@ public class TaxReportService {
             .append(execution.getCurrency() == Currency.USD ? nf.format(fillValue(execution)) : "").append(DL)
             .append(nf.format(fillValueBase(execution))).append(DL);
 
-        for (int k = 0; k < 5; k++) {
-            sb.append(DL);
-        }
+        sb.append(DL.repeat(5));
         sb.append(NL);
     }
 
-    private BigDecimal writeTradeShortExecutionBuy(StringBuilder sb, Trade trade, Execution execution, int currentPos, int tCount, int eCount) {
+    private BigDecimal writeTradeShortExecutionBuy(StringBuilder sb, Trade trade, Execution execution, double currentPos, int tCount, int eCount) {
         sb.append(tCount).append("_").append(eCount);
-        for (int k = 0; k < 7; k++) {
-            sb.append(DL);
-        }
+        sb.append(DL.repeat(7));
 
         sb  .append(DL)
             .append(execution.getFillDate().format(dtf)).append(DL)
@@ -216,10 +208,10 @@ public class TaxReportService {
             .append(execution.getQuantity()).append(DL)
             .append(execution.getCurrency() == Currency.USD ? nf.format(fillValue(execution)) : "").append(DL)
             .append(nf.format(fillValueBase(execution))).append(DL)
-            .append(currentPos).append(DL);
+            .append((int) currentPos).append(DL);
 
         BigDecimal profitLoss = null;
-        if (currentPos == 0) {
+        if (currentPos == 0d) {
             profitLoss = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade);
             sb.append(nf.format(profitLoss.doubleValue()));
         }
@@ -236,26 +228,22 @@ public class TaxReportService {
             .append(execution.getCurrency() == Currency.USD ? nf.format(fillValue(execution)) : "").append(DL)
             .append(nf.format(fillValueBase(execution))).append(DL);
 
-        for (int k = 0; k < 4; k++) {
-            sb.append(DL);
-        }
+        sb.append(DL.repeat(4));
         sb.append(NL);
     }
 
-    private BigDecimal writeTradeLongExecutionSell(StringBuilder sb, Trade trade, Execution execution, int currentPos, int tCount, int eCount) {
+    private BigDecimal writeTradeLongExecutionSell(StringBuilder sb, Trade trade, Execution execution, double currentPos, int tCount, int eCount) {
         sb.append(tCount).append("_").append(eCount);
-        for (int k = 0; k < 8; k++) {
-            sb.append(DL);
-        }
+        sb.append(DL.repeat(8));
         sb  .append(DL)
             .append(execution.getFillDate().format(dtf)).append(DL)
             .append(execution.getQuantity()).append(DL)
             .append(execution.getCurrency() == Currency.USD ? nf.format(fillValue(execution)) : "").append(DL)
             .append(nf.format(fillValueBase(execution))).append(DL)
-            .append(currentPos).append(DL);
+            .append((int) currentPos).append(DL);
 
         BigDecimal profitLoss = null;
-        if (currentPos == 0) {
+        if (currentPos == 0d) {
             profitLoss = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade);
             sb.append(nf.format(profitLoss.doubleValue()));
         }

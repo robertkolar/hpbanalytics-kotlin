@@ -26,7 +26,7 @@ public class Execution implements Serializable {
     private String reference;
     @Enumerated(EnumType.STRING)
     private Types.Action action;
-    private Integer quantity;
+    private Double quantity;
     private String symbol;
     private String underlying;
     @Enumerated(EnumType.STRING)
@@ -109,11 +109,11 @@ public class Execution implements Serializable {
         return this;
     }
 
-    public Integer getQuantity() {
+    public Double getQuantity() {
         return quantity;
     }
 
-    public Execution setQuantity(Integer quantity) {
+    public Execution setQuantity(Double quantity) {
         this.quantity = quantity;
         return this;
     }

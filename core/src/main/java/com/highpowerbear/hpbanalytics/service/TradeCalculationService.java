@@ -43,12 +43,12 @@ public class TradeCalculationService {
         TradeType tradeType = trade.getType();
         BigDecimal cumulativeOpenPrice = BigDecimal.ZERO;
         BigDecimal cumulativeClosePrice = BigDecimal.ZERO;
-        int openPosition = 0;
-        int cumulativeQuantity = 0;
+        double openPosition = 0d;
+        double cumulativeQuantity = 0d;
 
         for (Execution execution : trade.getExecutions()) {
             Types.Action action = execution.getAction();
-            int quantity = execution.getQuantity();
+            double quantity = execution.getQuantity();
             BigDecimal fillPrice = execution.getFillPrice();
 
             openPosition += (action == Types.Action.BUY ? quantity : -quantity);
@@ -65,7 +65,7 @@ public class TradeCalculationService {
         BigDecimal avgOpenPrice = cumulativeOpenPrice.divide(BigDecimal.valueOf(cumulativeQuantity), RoundingMode.HALF_UP);
 
         trade   .setOpenPosition(openPosition)
-                .setStatus(openPosition != 0 ? TradeStatus.OPEN : TradeStatus.CLOSED)
+                .setStatus(openPosition != 0d ? TradeStatus.OPEN : TradeStatus.CLOSED)
                 .setCumulativeQuantity(cumulativeQuantity)
                 .setOpenDate(firstExecution.getFillDate())
                 .setAvgOpenPrice(avgOpenPrice);
@@ -100,7 +100,7 @@ public class TradeCalculationService {
 
         for (Execution execution : trade.getExecutions()) {
             Types.Action action = execution.getAction();
-            int quantity = execution.getQuantity();
+            double quantity = execution.getQuantity();
 
             LocalDate date = execution.getFillDate().toLocalDate();
             Currency currency = execution.getCurrency();
