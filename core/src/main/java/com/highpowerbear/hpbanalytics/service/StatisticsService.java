@@ -203,7 +203,7 @@ public class StatisticsService {
                 profitLossTaxReport = profitLossTaxReport.add(plTr);
             }
 
-            if (pl.doubleValue() >= 0) {
+            if (pl.compareTo(BigDecimal.ZERO) > 0) {
                 numWinners++;
                 winnersProfit = winnersProfit.add(pl);
 
@@ -215,7 +215,7 @@ public class StatisticsService {
                 losersLoss = losersLoss.add(pl.negate());
 
                 if (pl.compareTo(bigLoser) < 0) {
-                    bigLoser = pl.negate();
+                    bigLoser = pl;
                 }
             }
         }
@@ -234,7 +234,7 @@ public class StatisticsService {
                 .setNumLosers(numLosers)
                 .setPctWinners(HanUtil.round2(pctWinners))
                 .setBigWinner(bigWinner)
-                .setBigLoser(bigLoser)
+                .setBigLoser(bigLoser.negate())
                 .setWinnersProfit(winnersProfit)
                 .setLosersLoss(losersLoss)
                 .setTimeValueBought(timeValueBought)
