@@ -1,6 +1,7 @@
 package com.highpowerbear.hpbanalytics.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.highpowerbear.hpbanalytics.config.ApplicationProperties;
 import com.highpowerbear.hpbanalytics.database.*;
 import com.highpowerbear.hpbanalytics.enums.TradeStatus;
 import com.highpowerbear.hpbanalytics.enums.TradeType;
@@ -37,6 +38,7 @@ public class AppRestController {
     private final StatisticsService statisticsService;
     private final AnalyticsService analyticsService;
     private final TaxReportService taxReportService;
+    private final ApplicationProperties applicationProperties;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -45,13 +47,15 @@ public class AppRestController {
                              TradeRepository tradeRepository,
                              StatisticsService statisticsService,
                              AnalyticsService analyticsService,
-                             TaxReportService taxReportService) {
+                             TaxReportService taxReportService,
+                             ApplicationProperties applicationProperties) {
 
         this.executionRepository = executionRepository;
         this.tradeRepository = tradeRepository;
         this.statisticsService = statisticsService;
         this.analyticsService = analyticsService;
         this.taxReportService = taxReportService;
+        this.applicationProperties = applicationProperties;
     }
 
     @RequestMapping("execution")
@@ -205,6 +209,9 @@ public class AppRestController {
         List<String> underlyings;
         if (openOnly) {
             underlyings = tradeRepository.findOpenUnderlyings();
+            applicationProperties.getUnderlyingsPermanent().stream()
+                    .filter(up -> !underlyings.contains(up))
+                    .forEach(underlyings::add);
         } else {
             underlyings = tradeRepository.findAllUnderlyings();
         }
