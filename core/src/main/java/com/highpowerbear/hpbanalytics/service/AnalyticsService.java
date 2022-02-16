@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -101,6 +102,7 @@ public class AnalyticsService {
     public void addExecution(Execution execution) {
         log.info("received request to add new execution for symbol " + execution.getSymbol());
         adjustFillDate(execution);
+        adjustInTheMoney(execution);
 
         ExecutionContract ec = ExecutionContract.forExecution(execution);
         List<Trade> tradesAffected = deleteTradesAffected(ec);
@@ -169,6 +171,15 @@ public class AnalyticsService {
         if (fillDate.isAfter(execution.getFillDate())) {
             log.info("adjusting fill date to " + fillDate);
             execution.setFillDate(fillDate);
+        }
+    }
+
+    private void adjustInTheMoney(Execution execution) {
+        if (execution.getSecType() == Types.SecType.OPT || execution.getSecType() == Types.SecType.FOP) {
+            if (execution.getInTheMoney() == null) {
+                log.info("setting in the money to zero");
+                execution.setInTheMoney(BigDecimal.ZERO);
+            }
         }
     }
 
