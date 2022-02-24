@@ -26,5 +26,4 @@ spring:
 application:
   ecb-exchange-rate-url: https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
   underlyings-permanent:
-    - VIX
     - MES

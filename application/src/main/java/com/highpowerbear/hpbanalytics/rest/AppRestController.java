@@ -168,6 +168,8 @@ public class AppRestController {
                 .setFillPrice(r.getClosePrice());
 
         analyticsService.addExecution(execution);
+        statisticsService.calculateCurrentStatisticsOnExecution(execution);
+
         return ResponseEntity.ok().build();
     }
 
