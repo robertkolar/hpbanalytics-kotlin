@@ -19,6 +19,7 @@ Ext.define('HanGui.model.Trade', {
         'closeDate',
         'profitLoss',
         'timeValueSum',
+        'valueSum',
         'executionIds'
     ]
 });

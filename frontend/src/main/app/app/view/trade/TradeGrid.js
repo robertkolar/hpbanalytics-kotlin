@@ -34,7 +34,7 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         filter: 'string'
     }, {
         text: 'Symbol',
-        width: 180,
+        width: 160,
         dataIndex: 'symbol',
         filter: 'string'
     }, {
@@ -97,6 +97,12 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         text: 'TV Sum',
         width: 100,
         dataIndex: 'timeValueSum',
+        align: 'right',
+        renderer: 'valueRenderer'
+    }, {
+        text: 'Value Sum',
+        width: 100,
+        dataIndex: 'valueSum',
         align: 'right',
         renderer: 'valueRenderer'
     }, {

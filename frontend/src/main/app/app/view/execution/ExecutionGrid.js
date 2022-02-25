@@ -47,7 +47,7 @@ Ext.define('HanGui.view.execution.ExecutionGrid', {
         filter: 'string'
     }, {
         text: 'Symbol',
-        width: 180,
+        width: 160,
         dataIndex: 'symbol',
         filter: 'string'
     }, {

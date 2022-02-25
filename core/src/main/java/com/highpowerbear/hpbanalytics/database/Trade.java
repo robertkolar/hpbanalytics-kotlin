@@ -24,7 +24,7 @@ public class Trade implements Serializable {
     private static final long serialVersionUID = 3978501428965359313L;
 
     @Id
-    @SequenceGenerator(name="trade_generator", sequenceName = "trade_seq", schema = HanSettings.DB_SCHEMA, catalog = HanSettings.DB_DATABASE, allocationSize = 1)
+    @SequenceGenerator(name = "trade_generator", sequenceName = "trade_seq", schema = HanSettings.DB_SCHEMA, catalog = HanSettings.DB_DATABASE, allocationSize = 1)
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "trade_generator")
     private Long id;
     @Enumerated(EnumType.STRING)
@@ -49,6 +49,12 @@ public class Trade implements Serializable {
     @OneToMany(mappedBy = "trade", fetch = FetchType.EAGER)
     @OrderBy("fillDate ASC")
     private List<Execution> executions = new ArrayList<>();
+
+    public BigDecimal getValueSum() {
+        return executions.stream()
+                .map(Execution::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 
     @Override
     public boolean equals(Object o) {
