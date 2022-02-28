@@ -144,7 +144,7 @@ public class ExchangeRateService implements ScheduledTaskPerformer {
             exchangeRate.setDate(futureDate.toString());
 
             exchangeRate = exchangeRateRepository.save(exchangeRate);
-            exchangeRateMap.put(exchangeRateDate.toString(), exchangeRateMapper.entityToDto(exchangeRate));
+            exchangeRateMap.put(futureDate.toString(), exchangeRateMapper.entityToDto(exchangeRate));
         }
         log.info("END ExchangeRateRetriever.retrieve");
     }
