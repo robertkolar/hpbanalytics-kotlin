@@ -18,8 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -59,7 +61,7 @@ public class AppRestController {
     }
 
     @RequestMapping("execution")
-    public ResponseEntity<?> getFilteredExecutions(
+    public GenericList<Execution> getFilteredExecutions(
             @RequestParam("page") int page,
             @RequestParam("limit") int limit,
             @RequestParam(required = false, value = "filter") String jsonFilter) throws Exception {
@@ -79,42 +81,36 @@ public class AppRestController {
             executions = executionRepository.findAll(pageable).getContent();
             numExecutions = executionRepository.count();
         }
-        return ResponseEntity.ok(new GenericList<>(executions, (int) numExecutions));
+        return new GenericList<>(executions, (int) numExecutions);
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "execution")
-    public ResponseEntity<?> addExecution(@RequestBody Execution execution) {
+    public void addExecution(@RequestBody Execution execution) {
 
         execution.setId(null);
         analyticsService.addExecution(execution);
         statisticsService.calculateCurrentStatisticsOnExecution(execution);
-
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping(method = RequestMethod.DELETE, value = "execution/{executionId}")
-    public ResponseEntity<?> deleteExecution(@PathVariable("executionId") long executionId) {
+    public void deleteExecution(@PathVariable("executionId") long executionId) {
 
         Execution execution = executionRepository.findById(executionId).orElse(null);
         if (execution == null ) {
-            return ResponseEntity.notFound().build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "execution not found, id=" + executionId);
         }
 
         analyticsService.deleteExecution(executionId);
         statisticsService.calculateCurrentStatisticsOnExecution(execution);
-
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "trade/regenerate-all")
-    public ResponseEntity<?> regenerateAllTrades() {
-
+    public void regenerateAllTrades() {
         analyticsService.regenerateAllTrades();
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping("trade")
-    public ResponseEntity<?> getFilteredTrades(
+    public GenericList<Trade> getFilteredTrades(
             @RequestParam("page") int page,
             @RequestParam("limit") int limit,
             @RequestParam(required = false, value = "filter") String jsonFilter) throws Exception {
@@ -133,7 +129,7 @@ public class AppRestController {
             trades = tradeRepository.findAll(pageable).getContent();
             numTrades = tradeRepository.count();
         }
-        return ResponseEntity.ok(new GenericList<>(trades, (int) numTrades));
+        return new GenericList<>(trades, (int) numTrades);
     }
 
     @RequestMapping("trade/statistics")
@@ -142,17 +138,17 @@ public class AppRestController {
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "trade/{tradeId}/close")
-    public ResponseEntity<?> manualCloseTrade(
+    public void manualCloseTrade(
             @PathVariable("tradeId") long tradeId,
             @RequestBody CloseTradeRequest r) {
 
         Trade trade = tradeRepository.findById(tradeId).orElse(null);
 
         if (trade == null) {
-            return ResponseEntity.notFound().build();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "trade not found, id=" + tradeId);
 
         } else if (!TradeStatus.OPEN.equals(trade.getStatus())) {
-            return ResponseEntity.badRequest().build();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "trade not open, id=" + tradeId);
         }
 
         Execution execution = new Execution()
@@ -169,12 +165,10 @@ public class AppRestController {
 
         analyticsService.addExecution(execution);
         statisticsService.calculateCurrentStatisticsOnExecution(execution);
-
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping("statistics")
-    public ResponseEntity<?> getStatistics(
+    public GenericList<Statistics> getStatistics(
             @RequestParam("interval") ChronoUnit interval,
             @RequestParam(required = false, value = "tradeType") String tradeType,
             @RequestParam(required = false, value = "secType") String secType,
@@ -187,11 +181,11 @@ public class AppRestController {
         Collections.reverse(items);
         int total = items.size();
 
-        return ResponseEntity.ok(new GenericList<>(page(items, start, limit, total), total));
+        return new GenericList<>(page(items, start, limit, total), total);
     }
 
     @RequestMapping("statistics/current")
-    public ResponseEntity<?> getCurrentStatistics(
+    public GenericList<Statistics> getCurrentStatistics(
             @RequestParam(required = false, value = "tradeType") String tradeType,
             @RequestParam(required = false, value = "secType") String secType,
             @RequestParam(required = false, value = "currency") String currency,
@@ -202,11 +196,11 @@ public class AppRestController {
         List<Statistics> items = statisticsService.getCurrentStatistics(tradeType, secType, currency, underlying);
         int total = items.size();
 
-        return ResponseEntity.ok(new GenericList<>(page(items, start, limit, total), total));
+        return new GenericList<>(page(items, start, limit, total), total);
     }
 
     @RequestMapping("statistics/underlyings")
-    public ResponseEntity<?> getUnderlyings(@RequestParam(required = false, value = "openOnly") boolean openOnly) {
+    public List<String> getUnderlyings(@RequestParam(required = false, value = "openOnly") boolean openOnly) {
 
         List<String> underlyings;
         if (openOnly) {
@@ -217,25 +211,21 @@ public class AppRestController {
         } else {
             underlyings = tradeRepository.findAllUnderlyings();
         }
-        return ResponseEntity.ok(underlyings);
+        return underlyings;
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "statistics")
-    public ResponseEntity<?> calculateStatistics(@RequestBody CalculateStatisticsRequest r) {
-
+    public void calculateStatistics(@RequestBody CalculateStatisticsRequest r) {
         statisticsService.calculateStatistics(r.getInterval(), r.getTradeType(), r.getSecType(), r.getCurrency(), r.getUnderlying());
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "statistics/current")
-    public ResponseEntity<?> calculateCurrentStatistics(@RequestBody CalculateStatisticsRequest r) {
-
+    public void calculateCurrentStatistics(@RequestBody CalculateStatisticsRequest r) {
         statisticsService.calculateCurrentStatistics(r.getTradeType(), r.getSecType(), r.getCurrency(), r.getUnderlying(), true);
-        return ResponseEntity.ok().build();
     }
 
     @RequestMapping("statistics/charts")
-    public ResponseEntity<?> getCharts(
+    public GenericList<Statistics> getCharts(
             @RequestParam("interval") ChronoUnit interval,
             @RequestParam(required = false, value = "tradeType") String tradeType,
             @RequestParam(required = false, value = "secType") String secType,
@@ -243,21 +233,21 @@ public class AppRestController {
             @RequestParam(required = false, value = "underlying") String underlying) {
 
         List<Statistics> statistics = statisticsService.getStatistics(interval, tradeType, secType, currency, underlying, 120);
-        return ResponseEntity.ok(new GenericList<>(statistics, statistics.size()));
+        return new GenericList<>(statistics, statistics.size());
     }
 
     @RequestMapping("statistics/ifi/years")
-    public ResponseEntity<?> getIfiYears() {
-        return ResponseEntity.ok(taxReportService.getIfiYears());
+    public List<Integer> getIfiYears() {
+        return taxReportService.getIfiYears();
     }
 
     @RequestMapping("statistics/ifi/csv")
-    public ResponseEntity<?> getIfiCsv(
+    public String getIfiCsv(
             @RequestParam("year") int year,
             @RequestParam("endMonth") int endMonth,
             @RequestParam("tradeType") TradeType tradeType) {
 
-        return ResponseEntity.ok(taxReportService.generate(year, endMonth, tradeType));
+        return taxReportService.generate(year, endMonth, tradeType);
     }
 
     private <T> List<T> page(List<T> items, int start, int limit, int total) {
