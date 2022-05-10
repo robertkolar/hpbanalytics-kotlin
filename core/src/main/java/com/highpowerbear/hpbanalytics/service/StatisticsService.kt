@@ -1,235 +1,180 @@
-package com.highpowerbear.hpbanalytics.service;
+package com.highpowerbear.hpbanalytics.service
 
-import com.highpowerbear.hpbanalytics.common.HanUtil;
-import com.highpowerbear.hpbanalytics.config.HanSettings;
-import com.highpowerbear.hpbanalytics.config.WsTopic;
-import com.highpowerbear.hpbanalytics.database.DataFilters;
-import com.highpowerbear.hpbanalytics.database.Execution;
-import com.highpowerbear.hpbanalytics.database.Trade;
-import com.highpowerbear.hpbanalytics.database.TradeRepository;
-import com.highpowerbear.hpbanalytics.enums.Currency;
-import com.highpowerbear.hpbanalytics.enums.TradeType;
-import com.highpowerbear.hpbanalytics.model.Statistics;
-import com.highpowerbear.hpbanalytics.service.helper.StatisticsHelper;
-import com.ib.client.Types;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Stream;
-
-import static com.highpowerbear.hpbanalytics.config.HanSettings.ALL;
+import com.highpowerbear.hpbanalytics.common.HanUtil
+import com.highpowerbear.hpbanalytics.config.HanSettings
+import com.highpowerbear.hpbanalytics.config.WsTopic
+import com.highpowerbear.hpbanalytics.database.DataFilters
+import com.highpowerbear.hpbanalytics.database.Execution
+import com.highpowerbear.hpbanalytics.database.Trade
+import com.highpowerbear.hpbanalytics.database.TradeRepository
+import com.highpowerbear.hpbanalytics.enums.Currency
+import com.highpowerbear.hpbanalytics.enums.TradeType
+import com.highpowerbear.hpbanalytics.model.Statistics
+import com.highpowerbear.hpbanalytics.service.helper.StatisticsHelper
+import com.ib.client.Types
+import com.ib.client.Types.SecType
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Sort
+import org.springframework.stereotype.Service
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
+import java.util.*
+import java.util.concurrent.ScheduledExecutorService
+import java.util.stream.Stream
 
 /**
  * Created by robertk on 4/26/2015.
  */
 @Service
-public class StatisticsService {
-    private static final Logger log = LoggerFactory.getLogger(StatisticsService.class);
-
-    private final TradeRepository tradeRepository;
-    private final MessageService messageService;
-    private final TradeCalculationService tradeCalculationService;
-    private final StatisticsHelper helper;
-    private final ScheduledExecutorService executorService;
-    private final Map<String, List<Statistics>> statisticsMap;
-    private final Map<String, List<Statistics>> currentStatisticsMap;
-
-    @Autowired
-    public StatisticsService(TradeRepository tradeRepository,
-                             MessageService messageService,
-                             TradeCalculationService tradeCalculationService,
-                             StatisticsHelper helper,
-                             ScheduledExecutorService executorService,
-                             Map<String, List<Statistics>> statisticsMap,
-                             Map<String, List<Statistics>> currentStatisticsMap) {
-
-        this.tradeRepository = tradeRepository;
-        this.messageService = messageService;
-        this.tradeCalculationService = tradeCalculationService;
-        this.helper = helper;
-        this.executorService = executorService;
-        this.statisticsMap = statisticsMap;
-        this.currentStatisticsMap = currentStatisticsMap;
-    }
-
-    public List<Statistics> getStatistics(ChronoUnit interval, String tradeType, String secType, String currency, String underlying, Integer maxPoints) {
-
-        List<Statistics> statisticsList = statisticsMap.get(helper.statisticsKey(interval, tradeType, secType, currency, underlying));
-        if (statisticsList == null) {
-            return Collections.emptyList();
+class StatisticsService @Autowired constructor(private val tradeRepository: TradeRepository,
+                                               private val messageService: MessageService,
+                                               private val tradeCalculationService: TradeCalculationService,
+                                               private val helper: StatisticsHelper,
+                                               private val executorService: ScheduledExecutorService,
+                                               private val statisticsMap: MutableMap<String, List<Statistics>>,
+                                               private val currentStatisticsMap: MutableMap<String, List<Statistics>>) {
+    fun getStatistics(interval: ChronoUnit?, tradeType: String?, secType: String?, currency: String?, underlying: String?, maxPoints: Int?): List<Statistics> {
+        val maxPointsMod: Int
+        val statisticsList = statisticsMap[helper.statisticsKey(interval, tradeType, secType, currency, underlying)]
+                ?: return emptyList()
+        val size = statisticsList.size
+        maxPointsMod = if (maxPoints == null || size < maxPoints) {
+            size
+        } else {
+            maxPoints
         }
+        val firstIndex = size - maxPointsMod
+        return ArrayList(statisticsList.subList(firstIndex, size)) // copy because reverse will be performed on it
+    }
 
-        int size = statisticsList.size();
-        if (maxPoints == null || size < maxPoints) {
-            maxPoints = size;
+    fun getCurrentStatistics(tradeType: String?, secType: String?, currency: String?, underlying: String?): List<Statistics> {
+        val currentStatisticsList = currentStatisticsMap[helper.statisticsKey(null, tradeType, secType, currency, underlying)]!!
+        return Objects.requireNonNullElse(currentStatisticsList, emptyList())
+    }
+
+    fun calculateStatistics(interval: ChronoUnit, tradeType: String, secType: String, currency: String, underlying: String) {
+        executorService.execute {
+            // execute in a new thread
+            log.info("BEGIN statistics calculation for interval=$interval, tradeType=$tradeType, secType=$secType, currency=$currency, undl=$underlying")
+            val tradeExample = DataFilters.tradeExample(
+                    helper.normalizeEnumParam(tradeType, TradeType::class.java),
+                    helper.normalizeEnumParam(secType, SecType::class.java),
+                    helper.normalizeEnumParam(currency, Currency::class.java),
+                    if (HanSettings.ALL == underlying) null else underlying)
+            val trades = tradeRepository.findAll(tradeExample, Sort.by(Sort.Direction.ASC, "openDate"))
+            log.info("found " + trades.size + " trades matching the filter criteria, calculating statistics...")
+            val statisticsList = calculate(trades, interval)
+            statisticsMap[helper.statisticsKey(interval, tradeType, secType, currency, underlying)] = statisticsList
+            log.info("END statistics calculation for interval=" + interval + ", included " + trades.size + " trades")
+            messageService.sendWsReloadRequestMessage(WsTopic.STATISTICS)
         }
-        int firstIndex = size - maxPoints;
-        return new ArrayList<>(statisticsList.subList(firstIndex, size)); // copy because reverse will be performed on it
     }
 
-    public List<Statistics> getCurrentStatistics(String tradeType, String secType, String currency, String underlying) {
-        List<Statistics> currentStatisticsList = currentStatisticsMap.get(helper.statisticsKey(null, tradeType, secType, currency, underlying));
-        return Objects.requireNonNullElse(currentStatisticsList, Collections.emptyList());
-    }
-
-    public void calculateStatistics(ChronoUnit interval, String tradeType, String secType, String currency, String underlying) {
-        executorService.execute(() -> { // execute in a new thread
-            log.info("BEGIN statistics calculation for interval=" + interval + ", tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
-
-            Example<Trade> tradeExample = DataFilters.tradeExample(
-                    helper.normalizeEnumParam(tradeType, TradeType.class),
-                    helper.normalizeEnumParam(secType, Types.SecType.class),
-                    helper.normalizeEnumParam(currency, Currency.class),
-                    ALL.equals(underlying) ? null : underlying);
-
-            List<Trade> trades = tradeRepository.findAll(tradeExample, Sort.by(Sort.Direction.ASC, "openDate"));
-
-            log.info("found " + trades.size() + " trades matching the filter criteria, calculating statistics...");
-            List<Statistics> statisticsList = calculate(trades, interval);
-            statisticsMap.put(helper.statisticsKey(interval, tradeType, secType, currency, underlying), statisticsList);
-
-            log.info("END statistics calculation for interval=" + interval + ", included " + trades.size() + " trades");
-            messageService.sendWsReloadRequestMessage(WsTopic.STATISTICS);
-        });
-    }
-
-    public void calculateCurrentStatistics(String tradeType, String secType, String currency, String underlying, boolean reload) {
-        log.info("BEGIN current statistics calculation for tradeType=" + tradeType + ", secType=" + secType + ", currency=" + currency + ", undl=" + underlying);
-
-        LocalDateTime cutoffDate = helper.toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS);
-        Specification<Trade> tradeSpecification = DataFilters.tradeSpecification(
-                helper.normalizeEnumParam(tradeType, TradeType.class),
-                helper.normalizeEnumParam(secType, Types.SecType.class),
-                helper.normalizeEnumParam(currency, Currency.class),
-                ALL.equals(underlying) ? null : underlying,
+    fun calculateCurrentStatistics(tradeType: String, secType: String, currency: String, underlying: String, reload: Boolean) {
+        log.info("BEGIN current statistics calculation for tradeType=$tradeType, secType=$secType, currency=$currency, undl=$underlying")
+        val cutoffDate = helper.toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS)
+        val tradeSpecification = DataFilters.tradeSpecification(
+                helper.normalizeEnumParam(tradeType, TradeType::class.java),
+                helper.normalizeEnumParam(secType, SecType::class.java),
+                helper.normalizeEnumParam(currency, Currency::class.java),
+                if (HanSettings.ALL == underlying) null else underlying,
                 cutoffDate
-        );
-        List<Trade> trades = tradeRepository.findAll(tradeSpecification, Sort.by(Sort.Direction.ASC, "openDate"));
-
-        Statistics daily = calculateCurrent(trades, ChronoUnit.DAYS);
-        Statistics monthly = calculateCurrent(trades, ChronoUnit.MONTHS);
-        Statistics yearly = calculateCurrent(trades, ChronoUnit.YEARS);
-
-        currentStatisticsMap.put(helper.statisticsKey(null, tradeType, secType, currency, underlying), List.of(daily, monthly, yearly));
-
-        log.info("END current statistics calculation, included " + trades.size() + " trades");
+        )
+        val trades = tradeRepository.findAll(tradeSpecification, Sort.by(Sort.Direction.ASC, "openDate"))
+        val daily = calculateCurrent(trades, ChronoUnit.DAYS)
+        val monthly = calculateCurrent(trades, ChronoUnit.MONTHS)
+        val yearly = calculateCurrent(trades, ChronoUnit.YEARS)
+        currentStatisticsMap[helper.statisticsKey(null, tradeType, secType, currency, underlying)] = java.util.List.of(daily, monthly, yearly)
+        log.info("END current statistics calculation, included " + trades.size + " trades")
         if (reload) {
-            messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS);
+            messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS)
         }
     }
 
-    public void calculateCurrentStatisticsOnExecution(Execution execution) {
-        String all = HanSettings.ALL;
-        String secType = execution.getSecType().name();
-        String undl = execution.getUnderlying();
-
-        Stream.of(all, secType).forEach(st ->
-            Stream.of(all, undl).forEach(u ->
-                calculateCurrentStatistics(all, st, all, u, false)));
-
-        messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS);
+    fun calculateCurrentStatisticsOnExecution(execution: Execution) {
+        val all = HanSettings.ALL
+        val secType = execution.secType.name
+        val undl = execution.underlying
+        Stream.of(all, secType).forEach { st: String -> Stream.of(all, undl).forEach { u: String -> calculateCurrentStatistics(all, st, all, u, false) } }
+        messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS)
     }
 
-    private List<Statistics> calculate(List<Trade> trades, ChronoUnit interval) {
-        List<Statistics> statisticsList = new ArrayList<>();
+    private fun calculate(trades: List<Trade>?, interval: ChronoUnit): List<Statistics> {
+        val statisticsList: MutableList<Statistics> = ArrayList()
         if (trades == null || trades.isEmpty()) {
-            return statisticsList;
+            return statisticsList
         }
-
-        LocalDateTime firstPeriodDate = helper.toBeginOfPeriod(helper.firstDate(trades), interval);
-        LocalDateTime lastPeriodDate = helper.toBeginOfPeriod(helper.lastDate(trades), interval);
-        LocalDateTime periodDate = firstPeriodDate;
-
-        BigDecimal cumulProfitLoss = BigDecimal.ZERO;
-        int statsCount = 1;
-
+        val firstPeriodDate = helper.toBeginOfPeriod(helper.firstDate(trades), interval)
+        val lastPeriodDate = helper.toBeginOfPeriod(helper.lastDate(trades), interval)
+        var periodDate = firstPeriodDate
+        var cumulProfitLoss = BigDecimal.ZERO
+        var statsCount = 1
         while (!periodDate.isAfter(lastPeriodDate)) {
-            Statistics statistics = calculatePeriod(trades, interval, periodDate);
-
-            cumulProfitLoss = cumulProfitLoss.add(statistics.getProfitLoss());
+            val statistics = calculatePeriod(trades, interval, periodDate)
+            cumulProfitLoss = cumulProfitLoss.add(statistics.profitLoss)
             statistics
-                    .setId(statsCount++)
-                    .setCumulProfitLoss(cumulProfitLoss);
-
-            statisticsList.add(statistics);
-            periodDate = periodDate.plus(1, interval);
+                    .setId(statsCount++).cumulProfitLoss = cumulProfitLoss
+            statisticsList.add(statistics)
+            periodDate = periodDate.plus(1, interval)
         }
-        return statisticsList;
+        return statisticsList
     }
 
-    private Statistics calculateCurrent(List<Trade> trades, ChronoUnit interval) {
-        Statistics statistics = calculatePeriod(trades, interval, helper.toBeginOfPeriod(LocalDateTime.now(), interval));
-        int id = interval == ChronoUnit.DAYS ? 1 : (interval == ChronoUnit.MONTHS ? 2 : 3);
-
+    private fun calculateCurrent(trades: List<Trade>, interval: ChronoUnit): Statistics {
+        val statistics = calculatePeriod(trades, interval, helper.toBeginOfPeriod(LocalDateTime.now(), interval))
+        val id = if (interval == ChronoUnit.DAYS) 1 else if (interval == ChronoUnit.MONTHS) 2 else 3
         return statistics
                 .setId(id)
-                .setCumulProfitLoss(statistics.getProfitLoss());
+                .setCumulProfitLoss(statistics.profitLoss)
     }
 
-    private Statistics calculatePeriod(List<Trade> trades, ChronoUnit interval, LocalDateTime periodDate) {
+    private fun calculatePeriod(trades: List<Trade>?, interval: ChronoUnit, periodDate: LocalDateTime): Statistics {
         if (trades == null || trades.isEmpty()) {
-            return new Statistics();
+            return Statistics()
         }
-
-        List<Trade> tradesOpenedForPeriod = helper.getTradesOpenedForPeriod(trades, periodDate, interval);
-        List<Trade> tradesClosedForPeriod = helper.getTradesClosedForPeriod(trades, periodDate, interval);
-        List<Execution> executionsForPeriod = helper.getExecutionsForPeriod(trades, periodDate, interval);
-
-        int numWinners = 0;
-        int numLosers = 0;
-        BigDecimal bigWinner = BigDecimal.ZERO;
-        BigDecimal bigLoser = BigDecimal.ZERO;
-        BigDecimal winnersProfit = BigDecimal.ZERO;
-        BigDecimal losersLoss = BigDecimal.ZERO;
-        BigDecimal profitLoss = BigDecimal.ZERO;
-        BigDecimal profitLossTaxReport = BigDecimal.ZERO;
-
-        for (Trade trade : tradesClosedForPeriod) {
-            BigDecimal pl = tradeCalculationService.calculatePlPortfolioBaseCloseOnly(trade);
-            profitLoss = profitLoss.add(pl);
-
-            if (HanUtil.isDerivative(trade.getSecType())) {
-                BigDecimal plTr = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade);
-                profitLossTaxReport = profitLossTaxReport.add(plTr);
+        val tradesOpenedForPeriod = helper.getTradesOpenedForPeriod(trades, periodDate, interval)
+        val tradesClosedForPeriod = helper.getTradesClosedForPeriod(trades, periodDate, interval)
+        val executionsForPeriod = helper.getExecutionsForPeriod(trades, periodDate, interval)
+        var numWinners = 0
+        var numLosers = 0
+        var bigWinner = BigDecimal.ZERO
+        var bigLoser = BigDecimal.ZERO
+        var winnersProfit = BigDecimal.ZERO
+        var losersLoss = BigDecimal.ZERO
+        var profitLoss = BigDecimal.ZERO
+        var profitLossTaxReport = BigDecimal.ZERO
+        for (trade in tradesClosedForPeriod) {
+            val pl = tradeCalculationService.calculatePlPortfolioBaseCloseOnly(trade)
+            profitLoss = profitLoss.add(pl)
+            if (HanUtil.isDerivative(trade.secType)) {
+                val plTr = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade)
+                profitLossTaxReport = profitLossTaxReport.add(plTr)
             }
-
             if (pl.compareTo(BigDecimal.ZERO) > 0) {
-                numWinners++;
-                winnersProfit = winnersProfit.add(pl);
-
+                numWinners++
+                winnersProfit = winnersProfit.add(pl)
                 if (pl.compareTo(bigWinner) > 0) {
-                    bigWinner = pl;
+                    bigWinner = pl
                 }
             } else {
-                numLosers++;
-                losersLoss = losersLoss.add(pl.negate());
-
+                numLosers++
+                losersLoss = losersLoss.add(pl.negate())
                 if (pl.compareTo(bigLoser) < 0) {
-                    bigLoser = pl;
+                    bigLoser = pl
                 }
             }
         }
-        double pctWinners = !tradesClosedForPeriod.isEmpty() ? ((double) numWinners / (double) tradesClosedForPeriod.size()) * 100.0 : 0.0;
-
-        BigDecimal timeValueBought = helper.timeValueSum(executionsForPeriod, Types.Action.BUY);
-        BigDecimal timeValueSold = helper.timeValueSum(executionsForPeriod, Types.Action.SELL);
-        BigDecimal timeValueSum = timeValueBought.add(timeValueSold);
-
-        return new Statistics()
+        val pctWinners = if (!tradesClosedForPeriod.isEmpty()) numWinners.toDouble() / tradesClosedForPeriod.size.toDouble() * 100.0 else 0.0
+        val timeValueBought = helper.timeValueSum(executionsForPeriod, Types.Action.BUY)
+        val timeValueSold = helper.timeValueSum(executionsForPeriod, Types.Action.SELL)
+        val timeValueSum = timeValueBought.add(timeValueSold)
+        return Statistics()
                 .setPeriodDate(periodDate)
-                .setNumExecs(executionsForPeriod.size())
-                .setNumOpened(tradesOpenedForPeriod.size())
-                .setNumClosed(tradesClosedForPeriod.size())
+                .setNumExecs(executionsForPeriod.size)
+                .setNumOpened(tradesOpenedForPeriod.size)
+                .setNumClosed(tradesClosedForPeriod.size)
                 .setNumWinners(numWinners)
                 .setNumLosers(numLosers)
                 .setPctWinners(HanUtil.round2(pctWinners))
@@ -241,6 +186,10 @@ public class StatisticsService {
                 .setTimeValueSold(timeValueSold)
                 .setTimeValueSum(timeValueSum)
                 .setProfitLoss(profitLoss)
-                .setProfitLossTaxReport(profitLossTaxReport);
+                .setProfitLossTaxReport(profitLossTaxReport)
+    }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(StatisticsService::class.java)
     }
 }

@@ -1,267 +1,210 @@
-package com.highpowerbear.hpbanalytics.service;
+package com.highpowerbear.hpbanalytics.service
 
-import com.highpowerbear.hpbanalytics.config.WsTopic;
-import com.highpowerbear.hpbanalytics.database.Execution;
-import com.highpowerbear.hpbanalytics.database.ExecutionRepository;
-import com.highpowerbear.hpbanalytics.database.Trade;
-import com.highpowerbear.hpbanalytics.database.TradeRepository;
-import com.highpowerbear.hpbanalytics.model.ExecutionContract;
-import com.highpowerbear.hpbanalytics.model.TradeStatistics;
-import com.ib.client.Types;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.highpowerbear.hpbanalytics.config.WsTopic
+import com.highpowerbear.hpbanalytics.database.Execution
+import com.highpowerbear.hpbanalytics.database.ExecutionRepository
+import com.highpowerbear.hpbanalytics.database.Trade
+import com.highpowerbear.hpbanalytics.database.TradeRepository
+import com.highpowerbear.hpbanalytics.model.ExecutionContract
+import com.highpowerbear.hpbanalytics.model.TradeStatistics
+import com.ib.client.Types
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
+import java.util.function.Consumer
+import java.util.stream.Collectors
+import java.util.stream.Stream
 
 /**
  *
  * Created by robertk on 4/26/2015.
  */
 @Service
-public class AnalyticsService {
-    private static final Logger log = LoggerFactory.getLogger(AnalyticsService.class);
+open class AnalyticsService @Autowired constructor(private val executionRepository: ExecutionRepository,
+                                              private val tradeRepository: TradeRepository,
+                                              private val tradeCalculationService: TradeCalculationService,
+                                              private val messageService: MessageService) {
+    val tradeStatistics = TradeStatistics()
 
-    private final ExecutionRepository executionRepository;
-    private final TradeRepository tradeRepository;
-    private final TradeCalculationService tradeCalculationService;
-    private final MessageService messageService;
-
-    private final TradeStatistics tradeStatistics = new TradeStatistics();
-
-    @Autowired
-    public AnalyticsService(ExecutionRepository executionRepository,
-                            TradeRepository tradeRepository,
-                            TradeCalculationService tradeCalculationService,
-                            MessageService messageService) {
-
-        this.executionRepository = executionRepository;
-        this.tradeRepository = tradeRepository;
-        this.tradeCalculationService = tradeCalculationService;
-        this.messageService = messageService;
-
-        updateTradeStatistics();
+    init {
+        updateTradeStatistics()
     }
 
     @Transactional
-    public void regenerateAllTrades() {
-        log.info("BEGIN trade regeneration");
-
-        long tradeCount = tradeRepository.count();
-        int numExec = executionRepository.disassociateAllExecutions();
-
-        log.info("disassociated " + numExec + " executions, deleting " + tradeCount + " trades");
-        tradeRepository.deleteAll();
-
-        List<Execution> executions = executionRepository.findAllByOrderByFillDateAsc();
-
+    open fun regenerateAllTrades() {
+        log.info("BEGIN trade regeneration")
+        val tradeCount = tradeRepository.count()
+        val numExec = executionRepository.disassociateAllExecutions()
+        log.info("disassociated $numExec executions, deleting $tradeCount trades")
+        tradeRepository.deleteAll()
+        val executions = executionRepository.findAllByOrderByFillDateAsc()
         if (executions.isEmpty()) {
-            log.info("END trade regeneration, no executions, skipping");
-            return;
+            log.info("END trade regeneration, no executions, skipping")
+            return
         }
-        List<Trade> regeneratedTades = generateTrades(executions);
-        saveRegeneratedTrades(regeneratedTades);
-
-        log.info("END trade regeneration");
+        val regeneratedTades = generateTrades(executions)
+        saveRegeneratedTrades(regeneratedTades)
+        log.info("END trade regeneration")
     }
 
     @Transactional
-    public void deleteExecution(long executionId) {
-        log.info("received request to delete execution " + executionId);
-
-        Execution execution = executionRepository.findById(executionId).orElse(null);
+    open fun deleteExecution(executionId: Long) {
+        log.info("received request to delete execution $executionId")
+        val execution = executionRepository.findById(executionId).orElse(null)
         if (execution == null) {
-            log.warn("execution " + executionId + " does not exists, cannot delete");
-            return;
+            log.warn("execution $executionId does not exists, cannot delete")
+            return
         }
-
-        ExecutionContract ec = ExecutionContract.forExecution(execution);
-        List<Trade> tradesAffected = deleteTradesAffected(ec);
-
-        log.info("deleting execution " + execution);
-        executionRepository.delete(execution);
-
-        Trade firstTradeAffected = tradesAffected.get(0);
-        Execution firstExecution = firstTradeAffected.getExecutions().get(0);
-
-        List<Execution> executionsToAnalyzeAgain = executionRepository
-                .findExecutionsToAnalyzeAgain(ec.symbol(), ec.currency(), ec.secType(), ec.multiplier(), firstExecution.getFillDate());
-
-        List<Trade> regeneratedTrades = generateTradesSingleContract(executionsToAnalyzeAgain);
-        saveRegeneratedTrades(regeneratedTrades);
+        val ec = ExecutionContract.forExecution(execution)
+        val tradesAffected = deleteTradesAffected(ec)
+        log.info("deleting execution $execution")
+        executionRepository.delete(execution)
+        val firstTradeAffected = tradesAffected[0]
+        val firstExecution = firstTradeAffected.executions[0]
+        val executionsToAnalyzeAgain = executionRepository
+                .findExecutionsToAnalyzeAgain(ec.symbol(), ec.currency(), ec.secType(), ec.multiplier(), firstExecution.fillDate)
+        val regeneratedTrades = generateTradesSingleContract(executionsToAnalyzeAgain)
+        saveRegeneratedTrades(regeneratedTrades)
     }
 
     @Transactional
-    public void addExecution(Execution execution) {
-        log.info("received request to add new execution for symbol " + execution.getSymbol());
-        adjustFillDate(execution);
-        adjustInTheMoney(execution);
-
-        ExecutionContract ec = ExecutionContract.forExecution(execution);
-        List<Trade> tradesAffected = deleteTradesAffected(ec);
-
-        log.info("saving new execution " + execution);
-        execution = executionRepository.save(execution);
-
+    open fun addExecution(execution: Execution) {
+        var executionMod = execution
+        log.info("received request to add new execution for symbol " + executionMod.symbol)
+        adjustFillDate(executionMod)
+        adjustInTheMoney(executionMod)
+        val ec = ExecutionContract.forExecution(executionMod)
+        val tradesAffected = deleteTradesAffected(ec)
+        log.info("saving new execution $executionMod")
+        executionMod = executionRepository.save(executionMod)
         if (tradesAffected.isEmpty()) {
-            List<Trade> regeneratedTrades = generateTradesSingleContract(Collections.singletonList(execution));
-            saveRegeneratedTrades(regeneratedTrades);
-            return;
+            val regeneratedTrades = generateTradesSingleContract(listOf(executionMod))
+            saveRegeneratedTrades(regeneratedTrades)
+            return
         }
-
-        Trade firstTradeAffected = tradesAffected.get(0);
-        Execution firstExecution = firstTradeAffected.getExecutions().get(0);
-
-        LocalDateTime cutoffDate = Stream.of(firstExecution, execution)
-                .map(Execution::getFillDate)
-                .min(LocalDateTime::compareTo)
-                .get();
-
-        List<Execution> executionsToAnalyzeAgain = executionRepository
-                .findExecutionsToAnalyzeAgain(ec.symbol(), ec.currency(), ec.secType(), ec.multiplier(), cutoffDate);
-
-        List<Trade> regeneratedTrades = generateTradesSingleContract(executionsToAnalyzeAgain);
-        saveRegeneratedTrades(regeneratedTrades);
+        val firstTradeAffected = tradesAffected[0]
+        val firstExecution = firstTradeAffected.executions[0]
+        val cutoffDate = Stream.of(firstExecution, executionMod)
+                .map { obj: Execution -> obj.fillDate }
+                .min { obj: LocalDateTime, other: LocalDateTime? -> obj.compareTo(other) }
+                .get()
+        val executionsToAnalyzeAgain = executionRepository
+                .findExecutionsToAnalyzeAgain(ec.symbol(), ec.currency(), ec.secType(), ec.multiplier(), cutoffDate)
+        val regeneratedTrades = generateTradesSingleContract(executionsToAnalyzeAgain)
+        saveRegeneratedTrades(regeneratedTrades)
     }
 
-    public TradeStatistics getTradeStatistics() {
-        return tradeStatistics;
-    }
-
-    private List<Trade> deleteTradesAffected(ExecutionContract ec) {
-        List<Trade> tradesAffected = tradeRepository
-                .findTradesAffectedByExecution(ec.symbol(), ec.currency(), ec.secType(), ec.multiplier(), ec.execution().getFillDate());
-
+    private fun deleteTradesAffected(ec: ExecutionContract): List<Trade> {
+        val tradesAffected = tradeRepository
+                .findTradesAffectedByExecution(ec.symbol(), ec.currency(), ec.secType(), ec.multiplier(), ec.execution().fillDate)
         if (tradesAffected.isEmpty()) {
-            log.info("no trades affected");
-            return tradesAffected;
+            log.info("no trades affected")
+            return tradesAffected
         }
-
-        StringBuilder sb = new StringBuilder("trades affected:\n");
-        tradesAffected.forEach(trade -> sb.append(trade).append("\n"));
-        log.info(sb.toString());
-
-        for (Trade trade : tradesAffected) {
-            List<Execution> tradeExecutions = trade.getExecutions();
-
-            for (Execution te : tradeExecutions) {
-                te.setTrade(null); // save handled by transaction
-                log.info("disassociated execution " + te.getId());
+        val sb = StringBuilder("trades affected:\n")
+        tradesAffected.forEach(Consumer { trade: Trade? -> sb.append(trade).append("\n") })
+        log.info(sb.toString())
+        for (trade in tradesAffected) {
+            val tradeExecutions = trade.executions
+            for (te in tradeExecutions) {
+                te.trade = null // save handled by transaction
+                log.info("disassociated execution " + te.id)
             }
         }
-        log.info("deleting " + tradesAffected.size() + " trades");
-        tradeRepository.deleteAll(tradesAffected);
-
-        return tradesAffected;
+        log.info("deleting " + tradesAffected.size + " trades")
+        tradeRepository.deleteAll(tradesAffected)
+        return tradesAffected
     }
-    
-    private void adjustFillDate(Execution execution) {
-        LocalDateTime fillDate = execution.getFillDate();
 
+    private fun adjustFillDate(execution: Execution) {
+        var fillDate = execution.fillDate
         while (executionRepository.existsByFillDate(fillDate)) {
-            fillDate = fillDate.plus(1, ChronoUnit.MICROS);
+            fillDate = fillDate.plus(1, ChronoUnit.MICROS)
         }
-        if (fillDate.isAfter(execution.getFillDate())) {
-            log.info("adjusting fill date to " + fillDate);
-            execution.setFillDate(fillDate);
+        if (fillDate.isAfter(execution.fillDate)) {
+            log.info("adjusting fill date to $fillDate")
+            execution.fillDate = fillDate
         }
     }
 
-    private void adjustInTheMoney(Execution execution) {
-        if (execution.getSecType() == Types.SecType.OPT || execution.getSecType() == Types.SecType.FOP) {
-            if (execution.getInTheMoney() == null) {
-                log.info("setting in the money to zero");
-                execution.setInTheMoney(BigDecimal.ZERO);
+    private fun adjustInTheMoney(execution: Execution) {
+        if (execution.secType == Types.SecType.OPT || execution.secType == Types.SecType.FOP) {
+            if (execution.inTheMoney == null) {
+                log.info("setting in the money to zero")
+                execution.inTheMoney = BigDecimal.ZERO
             }
         }
     }
 
-    private void saveRegeneratedTrades(List<Trade> trades) {
-        log.info("saving " + trades.size() + " regenerated trades");
-
+    private fun saveRegeneratedTrades(trades: List<Trade>) {
+        log.info("saving " + trades.size + " regenerated trades")
         if (!trades.isEmpty()) {
-            tradeRepository.saveAll(trades); // executions update handled by transaction
+            tradeRepository.saveAll(trades) // executions update handled by transaction
         }
-
-        updateTradeStatistics();
-        messageService.sendWsReloadRequestMessage(WsTopic.EXECUTION);
-        messageService.sendWsReloadRequestMessage(WsTopic.TRADE);
+        updateTradeStatistics()
+        messageService.sendWsReloadRequestMessage(WsTopic.EXECUTION)
+        messageService.sendWsReloadRequestMessage(WsTopic.TRADE)
     }
 
-    private void updateTradeStatistics() {
+    private fun updateTradeStatistics() {
         tradeStatistics
                 .setNumAllTrades(tradeRepository.count())
                 .setNumAllUnderlyings(tradeRepository.countAllUnderlyings())
-                .setNumOpenTrades(tradeRepository.countOpenTrades())
-                .setNumOpenUnderlyings(tradeRepository.countOpenUnderlyings());
+                .setNumOpenTrades(tradeRepository.countOpenTrades()).numOpenUnderlyings = tradeRepository.countOpenUnderlyings()
     }
 
-    private List<Trade> generateTrades(List<Execution> executions) {
-        List<Trade> trades = new ArrayList<>();
-        Set<String> cids = executions.stream().map(ExecutionContract::cid).collect(Collectors.toSet());
-        Map<String, List<Execution>> executionsPerCidMap = new HashMap<>(); // contract identifier -> list of executions
-
-        cids.forEach(cid -> executionsPerCidMap.put(cid, new ArrayList<>()));
-
-        for (Execution execution : executions) {
-            String cid = ExecutionContract.cid(execution);
-            executionsPerCidMap.get(cid).add(execution);
+    private fun generateTrades(executions: List<Execution>): List<Trade> {
+        val trades: MutableList<Trade> = ArrayList()
+        val cids = executions.stream().map { e: Execution? -> ExecutionContract.cid(e) }.collect(Collectors.toSet())
+        val executionsPerCidMap: MutableMap<String, MutableList<Execution>> = HashMap() // contract identifier -> list of executions
+        cids.forEach(Consumer { cid: String -> executionsPerCidMap[cid] = ArrayList() })
+        for (execution in executions) {
+            val cid = ExecutionContract.cid(execution)
+            executionsPerCidMap[cid]!!.add(execution)
         }
-
-        for (String cid : cids) {
-            List<Execution> executionsPerCid = executionsPerCidMap.get(cid);
-
-            log.info("generating trades for " + cid);
-            List<Trade> generatedTradesPerCid = generateTradesSingleContract(executionsPerCid);
-
-            trades.addAll(generatedTradesPerCid);
+        for (cid in cids) {
+            val executionsPerCid: List<Execution> = executionsPerCidMap[cid]!!
+            log.info("generating trades for $cid")
+            val generatedTradesPerCid = generateTradesSingleContract(executionsPerCid)
+            trades.addAll(generatedTradesPerCid)
         }
-
-        return trades;
+        return trades
     }
-    
-    private List<Trade> generateTradesSingleContract(List<Execution> executions) {
-        List<Trade> trades = new ArrayList<>();
 
-        double currentPos = 0;
-        Set<Execution> singleContractSet = new LinkedHashSet<>(executions);
-
+    private fun generateTradesSingleContract(executions: List<Execution>): List<Trade> {
+        val trades: MutableList<Trade> = ArrayList()
+        var currentPos = 0.0
+        val singleContractSet: MutableSet<Execution> = LinkedHashSet(executions)
         while (!singleContractSet.isEmpty()) {
-            Trade trade = new Trade();
-
-            for (Execution execution : singleContractSet) {
-                trade.getExecutions().add(execution);
-                execution.setTrade(trade);
-
-                double oldPos = currentPos;
-                currentPos += (execution.getAction() == Types.Action.BUY ? execution.getQuantity() : -execution.getQuantity());
-
-                log.info("associated " + execution + ", currentPos=" + currentPos);
-
-                if (detectReversal(oldPos, currentPos)) {
-                    throw new IllegalStateException("execution resulting in reversal trade not permitted " + execution);
-                }
-                if (currentPos == 0) {
-                    break;
+            val trade = Trade()
+            for (execution in singleContractSet) {
+                trade.executions.add(execution)
+                execution.trade = trade
+                val oldPos = currentPos
+                currentPos += if (execution.action == Types.Action.BUY) execution.quantity else -execution.quantity
+                log.info("associated $execution, currentPos=$currentPos")
+                check(!detectReversal(oldPos, currentPos)) { "execution resulting in reversal trade not permitted $execution" }
+                if (currentPos == 0.0) {
+                    break
                 }
             }
-
-            tradeCalculationService.calculateFields(trade);
-            log.info("generated trade " + trade);
-            trades.add(trade);
-            trade.getExecutions().forEach(singleContractSet::remove);
+            tradeCalculationService.calculateFields(trade)
+            log.info("generated trade $trade")
+            trades.add(trade)
+            trade.executions.forEach(Consumer { o: Execution -> singleContractSet.remove(o) })
         }
-        return trades;
+        return trades
     }
 
-    private boolean detectReversal(double oldPos, double currentPos) {
-        return oldPos > 0 && currentPos < 0 || oldPos < 0 && currentPos > 0;
+    private fun detectReversal(oldPos: Double, currentPos: Double): Boolean {
+        return oldPos > 0 && currentPos < 0 || oldPos < 0 && currentPos > 0
+    }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(AnalyticsService::class.java)
     }
 }

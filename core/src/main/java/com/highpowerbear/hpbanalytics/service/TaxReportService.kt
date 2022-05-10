@@ -1,276 +1,233 @@
-package com.highpowerbear.hpbanalytics.service;
+package com.highpowerbear.hpbanalytics.service
 
-import com.highpowerbear.hpbanalytics.common.HanUtil;
-import com.highpowerbear.hpbanalytics.config.HanSettings;
-import com.highpowerbear.hpbanalytics.database.Execution;
-import com.highpowerbear.hpbanalytics.database.Trade;
-import com.highpowerbear.hpbanalytics.database.TradeRepository;
-import com.highpowerbear.hpbanalytics.enums.Currency;
-import com.highpowerbear.hpbanalytics.enums.TradeType;
-import com.ib.client.Types;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.text.NumberFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import com.highpowerbear.hpbanalytics.common.HanUtil
+import com.highpowerbear.hpbanalytics.config.HanSettings
+import com.highpowerbear.hpbanalytics.database.Execution
+import com.highpowerbear.hpbanalytics.database.Trade
+import com.highpowerbear.hpbanalytics.database.TradeRepository
+import com.highpowerbear.hpbanalytics.enums.Currency
+import com.highpowerbear.hpbanalytics.enums.TradeType
+import com.ib.client.Types
+import com.ib.client.Types.SecType
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.NumberFormat
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.*
+import java.util.stream.Collectors
+import java.util.stream.IntStream
 
 /**
  * Created by robertk on 10/10/2016.
  */
 @Service
-public class TaxReportService {
-    private static final Logger log = LoggerFactory.getLogger(TaxReportService.class);
+class TaxReportService @Autowired constructor(private val exchangeRateService: ExchangeRateService,
+                                              private val tradeRepository: TradeRepository,
+                                              private val tradeCalculationService: TradeCalculationService) {
+    private val NL = "\n"
+    private val DL = ","
+    private val acquireType = "A - nakup"
+    private val secTypeMap: MutableMap<SecType, String> = EnumMap(SecType::class.java)
+    private val tradeTypeMap: MutableMap<TradeType, String> = EnumMap(com.highpowerbear.hpbanalytics.enums.TradeType::class.java)
+    private val dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    private val nf = NumberFormat.getInstance(Locale.US)
+    var ifiYears: List<Int>? = null
+        private set
 
-    private final ExchangeRateService exchangeRateService;
-    private final TradeRepository tradeRepository;
-    private final TradeCalculationService tradeCalculationService;
-
-    private final String NL = "\n";
-    private final String DL = ",";
-    private final String acquireType = "A - nakup";
-
-    private final Map<Types.SecType, String> secTypeMap = new HashMap<>();
-    private final Map<TradeType, String> tradeTypeMap = new HashMap<>();
-
-    private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-    private final NumberFormat nf = NumberFormat.getInstance(Locale.US);
-
-    private List<Integer> ifiYears;
-
-    @Autowired
-    public TaxReportService(ExchangeRateService exchangeRateService,
-                            TradeRepository tradeRepository,
-                            TradeCalculationService tradeCalculationService) {
-
-        this.exchangeRateService = exchangeRateService;
-        this.tradeRepository = tradeRepository;
-        this.tradeCalculationService = tradeCalculationService;
-
-        setup();
+    init {
+        setup()
     }
 
-    private void setup() {
-        ifiYears = IntStream.rangeClosed(HanSettings.IFI_START_YEAR, LocalDate.now().getYear()).boxed().collect(Collectors.toList());
-
-        secTypeMap.put(Types.SecType.FUT, "01 - terminska pogodba");
-        secTypeMap.put(Types.SecType.CFD, "02 - pogodba na razliko");
-        secTypeMap.put(Types.SecType.OPT, "03 - opcija");
-        secTypeMap.put(Types.SecType.FOP, "03 - opcija");
-
-        tradeTypeMap.put(TradeType.LONG, "običajni");
-        tradeTypeMap.put(TradeType.SHORT, "na kratko");
-
-        nf.setMinimumFractionDigits(HanSettings.DECIMAL_SCALE);
-        nf.setMaximumFractionDigits(HanSettings.DECIMAL_SCALE);
-        nf.setGroupingUsed(false);
+    private fun setup() {
+        ifiYears = IntStream.rangeClosed(HanSettings.IFI_START_YEAR, LocalDate.now().year).boxed().collect(Collectors.toList())
+        secTypeMap[SecType.FUT] = "01 - terminska pogodba"
+        secTypeMap[SecType.CFD] = "02 - pogodba na razliko"
+        secTypeMap[SecType.OPT] = "03 - opcija"
+        secTypeMap[SecType.FOP] = "03 - opcija"
+        tradeTypeMap[TradeType.LONG] = "običajni"
+        tradeTypeMap[TradeType.SHORT] = "na kratko"
+        nf.minimumFractionDigits = HanSettings.DECIMAL_SCALE
+        nf.maximumFractionDigits = HanSettings.DECIMAL_SCALE
+        nf.isGroupingUsed = false
     }
 
-    public String generate(int year, int endMonth, TradeType tradeType) {
-        log.info("BEGIN IfiCsvGenerator.generate year=" + year +  ", endMonth=" + endMonth + ", tradeType=" + tradeType);
-
-        LocalDateTime beginDate = LocalDate.ofYearDay(year, 1).atStartOfDay();
-        LocalDateTime endDate = YearMonth.of(year, endMonth).atEndOfMonth().plusDays(1).atStartOfDay();
-        List<Trade> trades = tradeRepository.findByTypeAndCloseDateBetweenOrderByOpenDateAsc(tradeType, beginDate, endDate);
-
-        log.info("beginDate=" + beginDate + ", endDate=" + endDate + ", trades=" + trades.size());
-        StringBuilder sb = new StringBuilder();
-
-        if (TradeType.SHORT.equals(tradeType)) {
-            writeCsvHeaderShort(sb);
-        } else if (TradeType.LONG.equals(tradeType)) {
-            writeCsvHeaderLong(sb);
+    fun generate(year: Int, endMonth: Int, tradeType: TradeType): String {
+        log.info("BEGIN IfiCsvGenerator.generate year=$year, endMonth=$endMonth, tradeType=$tradeType")
+        val beginDate = LocalDate.ofYearDay(year, 1).atStartOfDay()
+        val endDate = YearMonth.of(year, endMonth).atEndOfMonth().plusDays(1).atStartOfDay()
+        val trades = tradeRepository.findByTypeAndCloseDateBetweenOrderByOpenDateAsc(tradeType, beginDate, endDate)
+        log.info("beginDate=" + beginDate + ", endDate=" + endDate + ", trades=" + trades.size)
+        val sb = StringBuilder()
+        if (TradeType.SHORT == tradeType) {
+            writeCsvHeaderShort(sb)
+        } else if (TradeType.LONG == tradeType) {
+            writeCsvHeaderLong(sb)
         }
-        int tCount = 0;
-        BigDecimal sumPl = BigDecimal.ZERO;
-
-        for (Trade trade : trades) {
-            if (!HanUtil.isDerivative(trade.getSecType())) {
-                continue;
+        var tCount = 0
+        var sumPl = BigDecimal.ZERO
+        for (trade in trades) {
+            if (!HanUtil.isDerivative(trade.secType)) {
+                continue
             }
-
-            BigDecimal tradePl = BigDecimal.ZERO;
-            tCount++;
-            writeTrade(sb, trade, tCount);
-            int eCount = 0;
-            double currentPos = 0d;
-            for (Execution execution : trade.getExecutions()) {
-                Types.Action action = execution.getAction();
-                currentPos += (action == Types.Action.BUY ? execution.getQuantity() : -execution.getQuantity());
-                eCount++;
-                if (TradeType.SHORT.equals(tradeType) && Types.Action.SELL.equals(action)) {
-                    writeTradeShortExecutionSell(sb, execution, tCount, eCount);
-
-                } else if (TradeType.SHORT.equals(tradeType) && Types.Action.BUY.equals(action)) {
-                    BigDecimal pl = writeTradeShortExecutionBuy(sb, trade, execution, currentPos, tCount, eCount);
-
+            var tradePl = BigDecimal.ZERO
+            tCount++
+            writeTrade(sb, trade, tCount)
+            var eCount = 0
+            var currentPos = 0.0
+            for (execution in trade.executions) {
+                val action = execution.action
+                currentPos += if (action == Types.Action.BUY) execution.quantity else -execution.quantity
+                eCount++
+                if (TradeType.SHORT == tradeType && Types.Action.SELL == action) {
+                    writeTradeShortExecutionSell(sb, execution, tCount, eCount)
+                } else if (TradeType.SHORT == tradeType && Types.Action.BUY == action) {
+                    val pl = writeTradeShortExecutionBuy(sb, trade, execution, currentPos, tCount, eCount)
                     if (pl != null) {
-                        tradePl = pl;
+                        tradePl = pl
                     }
-                } else if (TradeType.LONG.equals(tradeType) && Types.Action.BUY.equals(action)) {
-                    writeTradeLongExecutionBuy(sb, execution, tCount, eCount);
-
-                } else if (TradeType.LONG.equals(tradeType) && Types.Action.SELL.equals(action)) {
-                    BigDecimal pl = writeTradeLongExecutionSell(sb, trade, execution, currentPos, tCount, eCount);
+                } else if (TradeType.LONG == tradeType && Types.Action.BUY == action) {
+                    writeTradeLongExecutionBuy(sb, execution, tCount, eCount)
+                } else if (TradeType.LONG == tradeType && Types.Action.SELL == action) {
+                    val pl = writeTradeLongExecutionSell(sb, trade, execution, currentPos, tCount, eCount)
                     if (pl != null) {
-                        tradePl = pl;
+                        tradePl = pl
                     }
                 }
             }
-            sumPl = sumPl.add(tradePl);
-            sb.append(NL);
+            sumPl = sumPl.add(tradePl)
+            sb.append(NL)
         }
-
-        sb.append(NL).append("SKUPAJ");
-        sb.append(DL.repeat(14));
-        sb.append(nf.format(sumPl));
-
-        log.info("END IfiCsvGenerator.generate year=" + year + ", tradeType=" + tradeType);
-        return sb.toString();
+        sb.append(NL).append("SKUPAJ")
+        sb.append(DL.repeat(14))
+        sb.append(nf.format(sumPl))
+        log.info("END IfiCsvGenerator.generate year=$year, tradeType=$tradeType")
+        return sb.toString()
     }
 
-    private void writeCsvHeaderShort(StringBuilder sb) {
-        sb  .append("Zap. št.").append(DL)
-            .append("Vrsta IFI").append(DL)
-            .append("Vrsta posla").append(DL)
-            .append("Trgovalna koda").append(DL)
-            .append("Datum odsvojitve").append(DL)
-            .append("Količina odsvojenega IFI").append(DL)
-            .append("Vrednost ob odsvojitvi (na enoto) USD").append(DL)
-            .append("Vrednost ob odsvojitvi (na enoto) EUR").append(DL)
-            .append("Datum pridobitve").append(DL)
-            .append("Način pridobitve").append(DL)
-            .append("Količina").append(DL)
-            .append("Vrednost ob pridobitvi na enoto) USD").append(DL)
-            .append("Vrednost ob pridobitvi (na enoto) EUR").append(DL)
-            .append("Zaloga IFI").append(DL)
-            .append("Dobiček Izguba EUR").append(NL);
+    private fun writeCsvHeaderShort(sb: StringBuilder) {
+        sb.append("Zap. št.").append(DL)
+                .append("Vrsta IFI").append(DL)
+                .append("Vrsta posla").append(DL)
+                .append("Trgovalna koda").append(DL)
+                .append("Datum odsvojitve").append(DL)
+                .append("Količina odsvojenega IFI").append(DL)
+                .append("Vrednost ob odsvojitvi (na enoto) USD").append(DL)
+                .append("Vrednost ob odsvojitvi (na enoto) EUR").append(DL)
+                .append("Datum pridobitve").append(DL)
+                .append("Način pridobitve").append(DL)
+                .append("Količina").append(DL)
+                .append("Vrednost ob pridobitvi na enoto) USD").append(DL)
+                .append("Vrednost ob pridobitvi (na enoto) EUR").append(DL)
+                .append("Zaloga IFI").append(DL)
+                .append("Dobiček Izguba EUR").append(NL)
     }
 
-    private void writeCsvHeaderLong(StringBuilder sb) {
-        sb  .append("Zap. št.").append(DL)
-            .append("Vrsta IFI").append(DL)
-            .append("Vrsta posla").append(DL)
-            .append("Trgovalna koda").append(DL)
-            .append("Datum pridobitve").append(DL)
-            .append("Način pridobitve").append(DL)
-            .append("Količina").append(DL)
-            .append("Nabavna vrednost ob pridobitvi (na enoto) USD").append(DL)
-            .append("Nabavna vrednost ob pridobitvi (na enoto) EUR").append(DL)
-            .append("Datum odsvojitve").append(DL)
-            .append("Količina odsvojenega IFI").append(DL)
-            .append("Vrednost ob odsvojitvi (na enoto) USD").append(DL)
-            .append("Vrednost ob odsvojitvi (na enoto) EUR").append(DL)
-            .append("Zaloga IFI").append(DL)
-            .append("Dobiček Izguba EUR").append(NL);
+    private fun writeCsvHeaderLong(sb: StringBuilder) {
+        sb.append("Zap. št.").append(DL)
+                .append("Vrsta IFI").append(DL)
+                .append("Vrsta posla").append(DL)
+                .append("Trgovalna koda").append(DL)
+                .append("Datum pridobitve").append(DL)
+                .append("Način pridobitve").append(DL)
+                .append("Količina").append(DL)
+                .append("Nabavna vrednost ob pridobitvi (na enoto) USD").append(DL)
+                .append("Nabavna vrednost ob pridobitvi (na enoto) EUR").append(DL)
+                .append("Datum odsvojitve").append(DL)
+                .append("Količina odsvojenega IFI").append(DL)
+                .append("Vrednost ob odsvojitvi (na enoto) USD").append(DL)
+                .append("Vrednost ob odsvojitvi (na enoto) EUR").append(DL)
+                .append("Zaloga IFI").append(DL)
+                .append("Dobiček Izguba EUR").append(NL)
     }
 
-    private void writeTrade(StringBuilder sb, Trade trade, int tCount) {
-        sb  .append(tCount).append(DL)
-            .append(secTypeMap.get(trade.getSecType())).append(DL)
-            .append(tradeTypeMap.get(trade.getType())).append(DL)
-            .append(trade.getSymbol()).append(DL);
-
-        sb.append(DL.repeat(10));
-        sb.append(NL);
+    private fun writeTrade(sb: StringBuilder, trade: Trade, tCount: Int) {
+        sb.append(tCount).append(DL)
+                .append(secTypeMap[trade.secType]).append(DL)
+                .append(tradeTypeMap[trade.type]).append(DL)
+                .append(trade.symbol).append(DL)
+        sb.append(DL.repeat(10))
+        sb.append(NL)
     }
 
-    private void writeTradeShortExecutionSell(StringBuilder sb, Execution execution, int tCount, int eCount) {
-        sb  .append(tCount).append("_").append(eCount).append(DL).append(DL).append(DL).append(DL)
-            .append(execution.getFillDate().format(dtf)).append(DL)
-            .append(execution.getQuantity()).append(DL)
-            .append(execution.getCurrency() == Currency.USD ? nf.format(fillValue(execution)) : "").append(DL)
-            .append(nf.format(fillValueBase(execution))).append(DL);
-
-        sb.append(DL.repeat(5));
-        sb.append(NL);
+    private fun writeTradeShortExecutionSell(sb: StringBuilder, execution: Execution, tCount: Int, eCount: Int) {
+        sb.append(tCount).append("_").append(eCount).append(DL).append(DL).append(DL).append(DL)
+                .append(execution.fillDate.format(dtf)).append(DL)
+                .append(execution.quantity).append(DL)
+                .append(if (execution.currency == Currency.USD) nf.format(fillValue(execution)) else "").append(DL)
+                .append(nf.format(fillValueBase(execution))).append(DL)
+        sb.append(DL.repeat(5))
+        sb.append(NL)
     }
 
-    private BigDecimal writeTradeShortExecutionBuy(StringBuilder sb, Trade trade, Execution execution, double currentPos, int tCount, int eCount) {
-        sb.append(tCount).append("_").append(eCount);
-        sb.append(DL.repeat(7));
-
-        sb  .append(DL)
-            .append(execution.getFillDate().format(dtf)).append(DL)
-            .append(acquireType).append(DL)
-            .append(execution.getQuantity()).append(DL)
-            .append(execution.getCurrency() == Currency.USD ? nf.format(fillValue(execution)) : "").append(DL)
-            .append(nf.format(fillValueBase(execution))).append(DL)
-            .append((int) currentPos).append(DL);
-
-        BigDecimal profitLoss = null;
-        if (currentPos == 0d) {
-            profitLoss = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade);
-            sb.append(nf.format(profitLoss.doubleValue()));
+    private fun writeTradeShortExecutionBuy(sb: StringBuilder, trade: Trade, execution: Execution, currentPos: Double, tCount: Int, eCount: Int): BigDecimal? {
+        sb.append(tCount).append("_").append(eCount)
+        sb.append(DL.repeat(7))
+        sb.append(DL)
+                .append(execution.fillDate.format(dtf)).append(DL)
+                .append(acquireType).append(DL)
+                .append(execution.quantity).append(DL)
+                .append(if (execution.currency == Currency.USD) nf.format(fillValue(execution)) else "").append(DL)
+                .append(nf.format(fillValueBase(execution))).append(DL)
+                .append(currentPos.toInt()).append(DL)
+        var profitLoss: BigDecimal? = null
+        if (currentPos == 0.0) {
+            profitLoss = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade)
+            sb.append(nf.format(profitLoss.toDouble()))
         }
-
-        sb.append(NL);
-        return profitLoss;
+        sb.append(NL)
+        return profitLoss
     }
 
-    private void writeTradeLongExecutionBuy(StringBuilder sb, Execution execution, int tCount, int eCount) {
-        sb  .append(tCount).append("_").append(eCount).append(DL).append(DL).append(DL).append(DL)
-            .append(execution.getFillDate().format(dtf)).append(DL)
-            .append(acquireType).append(DL)
-            .append(execution.getQuantity()).append(DL)
-            .append(execution.getCurrency() == Currency.USD ? nf.format(fillValue(execution)) : "").append(DL)
-            .append(nf.format(fillValueBase(execution))).append(DL);
-
-        sb.append(DL.repeat(4));
-        sb.append(NL);
+    private fun writeTradeLongExecutionBuy(sb: StringBuilder, execution: Execution, tCount: Int, eCount: Int) {
+        sb.append(tCount).append("_").append(eCount).append(DL).append(DL).append(DL).append(DL)
+                .append(execution.fillDate.format(dtf)).append(DL)
+                .append(acquireType).append(DL)
+                .append(execution.quantity).append(DL)
+                .append(if (execution.currency == Currency.USD) nf.format(fillValue(execution)) else "").append(DL)
+                .append(nf.format(fillValueBase(execution))).append(DL)
+        sb.append(DL.repeat(4))
+        sb.append(NL)
     }
 
-    private BigDecimal writeTradeLongExecutionSell(StringBuilder sb, Trade trade, Execution execution, double currentPos, int tCount, int eCount) {
-        sb.append(tCount).append("_").append(eCount);
-        sb.append(DL.repeat(8));
-        sb  .append(DL)
-            .append(execution.getFillDate().format(dtf)).append(DL)
-            .append(execution.getQuantity()).append(DL)
-            .append(execution.getCurrency() == Currency.USD ? nf.format(fillValue(execution)) : "").append(DL)
-            .append(nf.format(fillValueBase(execution))).append(DL)
-            .append((int) currentPos).append(DL);
-
-        BigDecimal profitLoss = null;
-        if (currentPos == 0d) {
-            profitLoss = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade);
-            sb.append(nf.format(profitLoss.doubleValue()));
+    private fun writeTradeLongExecutionSell(sb: StringBuilder, trade: Trade, execution: Execution, currentPos: Double, tCount: Int, eCount: Int): BigDecimal? {
+        sb.append(tCount).append("_").append(eCount)
+        sb.append(DL.repeat(8))
+        sb.append(DL)
+                .append(execution.fillDate.format(dtf)).append(DL)
+                .append(execution.quantity).append(DL)
+                .append(if (execution.currency == Currency.USD) nf.format(fillValue(execution)) else "").append(DL)
+                .append(nf.format(fillValueBase(execution))).append(DL)
+                .append(currentPos.toInt()).append(DL)
+        var profitLoss: BigDecimal? = null
+        if (currentPos == 0.0) {
+            profitLoss = tradeCalculationService.calculatePlPortfolioBaseOpenClose(trade)
+            sb.append(nf.format(profitLoss.toDouble()))
         }
-        sb.append(NL);
-
-        return profitLoss;
+        sb.append(NL)
+        return profitLoss
     }
 
-    private double fillValue(Execution execution) {
-        BigDecimal contractFillPrice = execution.getFillPrice();
-        BigDecimal multiplier = BigDecimal.valueOf(execution.getMultiplier());
-
-        return contractFillPrice.multiply(multiplier).doubleValue();
+    private fun fillValue(execution: Execution): Double {
+        val contractFillPrice = execution.fillPrice
+        val multiplier = BigDecimal.valueOf(execution.multiplier)
+        return contractFillPrice.multiply(multiplier).toDouble()
     }
 
-    private double fillValueBase(Execution execution) {
-        LocalDate date = execution.getFillDate().toLocalDate();
-        Currency currency = execution.getCurrency();
-
-        BigDecimal exchangeRate = exchangeRateService.getExchangeRate(date, currency);
-        BigDecimal contractFillPrice = execution.getFillPrice();
-        BigDecimal multiplier = BigDecimal.valueOf(execution.getMultiplier());
-
-        return contractFillPrice.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP).multiply(multiplier).doubleValue();
+    private fun fillValueBase(execution: Execution): Double {
+        val date = execution.fillDate.toLocalDate()
+        val currency = execution.currency
+        val exchangeRate = exchangeRateService.getExchangeRate(date, currency)
+        val contractFillPrice = execution.fillPrice
+        val multiplier = BigDecimal.valueOf(execution.multiplier)
+        return contractFillPrice.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP).multiply(multiplier).toDouble()
     }
 
-    public List<Integer> getIfiYears() {
-        return ifiYears;
+    companion object {
+        private val log = LoggerFactory.getLogger(TaxReportService::class.java)
     }
 }
