@@ -1,116 +1,101 @@
-package com.highpowerbear.hpbanalytics.service.helper;
+package com.highpowerbear.hpbanalytics.service.helper
 
-import com.highpowerbear.hpbanalytics.config.HanSettings;
-import com.highpowerbear.hpbanalytics.database.Execution;
-import com.highpowerbear.hpbanalytics.database.Trade;
-import com.highpowerbear.hpbanalytics.enums.Currency;
-import com.highpowerbear.hpbanalytics.service.ExchangeRateService;
-import com.ib.client.Types;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.highpowerbear.hpbanalytics.config.HanSettings.ALL;
+import com.highpowerbear.hpbanalytics.config.HanSettings
+import com.highpowerbear.hpbanalytics.database.Execution
+import com.highpowerbear.hpbanalytics.database.Trade
+import com.highpowerbear.hpbanalytics.enums.Currency
+import com.highpowerbear.hpbanalytics.service.ExchangeRateService
+import com.ib.client.Types
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Component
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
+import java.util.stream.Collectors
 
 /**
  * Created by robertk on 1/18/2022.
  */
 @Component
-public class StatisticsHelper {
-
-    private final ExchangeRateService exchangeRateService;
-
-    @Autowired
-    public StatisticsHelper(ExchangeRateService exchangeRateService) {
-        this.exchangeRateService = exchangeRateService;
+class StatisticsHelper @Autowired constructor(private val exchangeRateService: ExchangeRateService) {
+    fun statisticsKey(
+        interval: ChronoUnit?,
+        tradeType: String?,
+        secType: String?,
+        currency: String?,
+        underlying: String?
+    ): String {
+        val intervalKey = interval?.name
+        val tradeTypeKey = if (tradeType == null || HanSettings.ALL == tradeType) HanSettings.ALL else tradeType
+        val secTypeKey = if (secType == null || HanSettings.ALL == secType) HanSettings.ALL else secType
+        val currencyKey = if (currency == null || HanSettings.ALL == currency) HanSettings.ALL else currency
+        val underlyingKey = underlying ?: HanSettings.ALL
+        return (if (intervalKey != null) intervalKey + "_" else "") + tradeTypeKey + "_" + secTypeKey + "_" + currencyKey + "_" + underlyingKey
     }
 
-    public String statisticsKey(ChronoUnit interval, String tradeType, String secType, String currency, String underlying) {
-
-        String intervalKey = interval != null ? interval.name() : null;
-        String tradeTypeKey = tradeType == null || ALL.equals(tradeType) ? ALL : tradeType;
-        String secTypeKey = secType == null || ALL.equals(secType) ? ALL : secType;
-        String currencyKey = currency == null || ALL.equals(currency) ? ALL : currency;
-        String underlyingKey = underlying == null ? ALL : underlying;
-
-        return (intervalKey != null ? intervalKey + "_" : "") + tradeTypeKey + "_" + secTypeKey + "_" + currencyKey + "_" + underlyingKey;
+    inline fun <reified T : Enum<T>> normalizeEnumParam(param: String?): T? {
+        return if (param == null || HanSettings.ALL == param) null else enumValueOf<T>(param)
     }
 
-    public <T extends Enum<T>> T normalizeEnumParam(String param, Class<T> enumType) {
-
-        return param == null || ALL.equals(param) ? null : T.valueOf(enumType, param);
-    }
-
-    public BigDecimal timeValueSum(List<Execution> executions, Types.Action action) {
+    fun timeValueSum(executions: List<Execution>, action: Types.Action): BigDecimal {
         return executions.stream()
-                .filter(e -> e.getAction() == action)
-                .filter(e -> e.getTimeValue() != null)
-                .map(e -> valueBase(e.getTimeValue(), e.getFillDate().toLocalDate(), e.getCurrency()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            .filter { e: Execution -> e.action == action }
+            .filter { e: Execution -> e.timeValue != null }
+            .map { e: Execution -> valueBase(e.timeValue, e.fillDate.toLocalDate(), e.currency) }
+            .reduce(BigDecimal.ZERO) { obj: BigDecimal, augend: BigDecimal? -> obj.add(augend) }
     }
 
-    public BigDecimal valueBase(BigDecimal value, LocalDate date, Currency currency) {
-        BigDecimal exchangeRate = exchangeRateService.getExchangeRate(date, currency);
-        return value.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP);
+    fun valueBase(value: BigDecimal, date: LocalDate?, currency: Currency?): BigDecimal {
+        val exchangeRate = exchangeRateService.getExchangeRate(date!!, currency!!)
+        return value.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP)
     }
 
-    public LocalDateTime firstDate(List<Trade> trades) {
+    fun firstDate(trades: List<Trade>): LocalDateTime {
         return trades.stream()
-                .flatMap(t -> t.getExecutions().stream())
-                .map(Execution::getFillDate)
-                .min(LocalDateTime::compareTo)
-                .orElse(null);
+            .flatMap { t: Trade -> t.executions.stream() }
+            .map { obj: Execution -> obj.fillDate }
+            .min { obj: LocalDateTime?, other: LocalDateTime? -> obj!!.compareTo(other) }
+            .orElse(LocalDateTime.MIN)
     }
 
-    public LocalDateTime lastDate(List<Trade> trades) {
+    fun lastDate(trades: List<Trade>): LocalDateTime {
         return trades.stream()
-                .flatMap(t -> t.getExecutions().stream())
-                .map(Execution::getFillDate)
-                .max(LocalDateTime::compareTo)
-                .orElse(null);
+            .flatMap { t: Trade -> t.executions.stream() }
+            .map { obj: Execution -> obj.fillDate }
+            .max { obj: LocalDateTime?, other: LocalDateTime? -> obj!!.compareTo(other) }
+            .orElse(LocalDateTime.MIN)
     }
 
-    public List<Trade> getTradesOpenedForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {
+    fun getTradesOpenedForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Trade> {
         return trades.stream()
-                .filter(t -> toBeginOfPeriod(t.getOpenDate(), interval).isEqual(periodDate))
-                .collect(Collectors.toList());
+            .filter { t: Trade -> toBeginOfPeriod(t.openDate, interval).isEqual(periodDate) }
+            .collect(Collectors.toList())
     }
 
-    public List<Trade> getTradesClosedForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {
+    fun getTradesClosedForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Trade> {
         return trades.stream()
-                .filter(t -> t.getCloseDate() != null)
-                .filter(t -> toBeginOfPeriod(t.getCloseDate(), interval).isEqual(periodDate))
-                .collect(Collectors.toList());
+            .filter { t: Trade -> t.closeDate != null }
+            .filter { t: Trade -> toBeginOfPeriod(t.closeDate, interval).isEqual(periodDate) }
+            .collect(Collectors.toList())
     }
 
-    public List<Execution> getExecutionsForPeriod(List<Trade> trades, LocalDateTime periodDate, ChronoUnit interval) {
+    fun getExecutionsForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Execution> {
         return trades.stream()
-                .flatMap(t -> t.getExecutions().stream())
-                .filter(e -> toBeginOfPeriod(e.getFillDate(), interval).isEqual(periodDate))
-                .distinct()
-                .collect(Collectors.toList());
+            .flatMap { t: Trade -> t.executions.stream() }
+            .filter { e: Execution -> toBeginOfPeriod(e.fillDate, interval).isEqual(periodDate) }
+            .distinct()
+            .collect(Collectors.toList())
     }
 
-    public LocalDateTime toBeginOfPeriod(LocalDateTime localDateTime, ChronoUnit interval) {
-        LocalDate localDate = localDateTime.toLocalDate();
-
-        if (ChronoUnit.YEARS.equals(interval)) {
-            localDate = localDate.withDayOfYear(1);
-
-        } else if (ChronoUnit.MONTHS.equals(interval)) {
-            localDate = localDate.withDayOfMonth(1);
-
-        } else if (!ChronoUnit.DAYS.equals(interval)) {
-            throw new IllegalStateException("unsupported statistics interval " + interval);
-        }
-
-        return localDate.atStartOfDay();
+    fun toBeginOfPeriod(localDateTime: LocalDateTime, interval: ChronoUnit): LocalDateTime {
+        var localDate = localDateTime.toLocalDate()
+        if (ChronoUnit.YEARS == interval) {
+            localDate = localDate.withDayOfYear(1)
+        } else if (ChronoUnit.MONTHS == interval) {
+            localDate = localDate.withDayOfMonth(1)
+        } else check(ChronoUnit.DAYS == interval) { "unsupported statistics interval $interval" }
+        return localDate.atStartOfDay()
     }
 }

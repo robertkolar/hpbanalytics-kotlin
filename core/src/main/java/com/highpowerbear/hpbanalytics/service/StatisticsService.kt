@@ -7,12 +7,9 @@ import com.highpowerbear.hpbanalytics.database.DataFilters
 import com.highpowerbear.hpbanalytics.database.Execution
 import com.highpowerbear.hpbanalytics.database.Trade
 import com.highpowerbear.hpbanalytics.database.TradeRepository
-import com.highpowerbear.hpbanalytics.enums.Currency
-import com.highpowerbear.hpbanalytics.enums.TradeType
 import com.highpowerbear.hpbanalytics.model.Statistics
 import com.highpowerbear.hpbanalytics.service.helper.StatisticsHelper
 import com.ib.client.Types
-import com.ib.client.Types.SecType
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Sort
@@ -59,9 +56,9 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
             // execute in a new thread
             log.info("BEGIN statistics calculation for interval=$interval, tradeType=$tradeType, secType=$secType, currency=$currency, undl=$underlying")
             val tradeExample = DataFilters.tradeExample(
-                    helper.normalizeEnumParam(tradeType, TradeType::class.java),
-                    helper.normalizeEnumParam(secType, SecType::class.java),
-                    helper.normalizeEnumParam(currency, Currency::class.java),
+                    helper.normalizeEnumParam(tradeType),
+                    helper.normalizeEnumParam(secType),
+                    helper.normalizeEnumParam(currency),
                     if (HanSettings.ALL == underlying) null else underlying)
             val trades = tradeRepository.findAll(tradeExample, Sort.by(Sort.Direction.ASC, "openDate"))
             log.info("found " + trades.size + " trades matching the filter criteria, calculating statistics...")
@@ -76,9 +73,9 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         log.info("BEGIN current statistics calculation for tradeType=$tradeType, secType=$secType, currency=$currency, undl=$underlying")
         val cutoffDate = helper.toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS)
         val tradeSpecification = DataFilters.tradeSpecification(
-                helper.normalizeEnumParam(tradeType, TradeType::class.java),
-                helper.normalizeEnumParam(secType, SecType::class.java),
-                helper.normalizeEnumParam(currency, Currency::class.java),
+                helper.normalizeEnumParam(tradeType),
+                helper.normalizeEnumParam(secType),
+                helper.normalizeEnumParam(currency),
                 if (HanSettings.ALL == underlying) null else underlying,
                 cutoffDate
         )
