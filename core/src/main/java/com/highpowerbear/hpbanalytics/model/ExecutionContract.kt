@@ -1,50 +1,44 @@
-package com.highpowerbear.hpbanalytics.model;
+package com.highpowerbear.hpbanalytics.model
 
-import com.highpowerbear.hpbanalytics.database.Execution;
-import com.highpowerbear.hpbanalytics.enums.Currency;
-import com.ib.client.Types;
+import com.highpowerbear.hpbanalytics.database.Execution
+import com.highpowerbear.hpbanalytics.enums.Currency
+import com.ib.client.Types.SecType
 
 /**
  * Created by robertk on 10/23/2020.
  */
-public class ExecutionContract {
-
-    private final Execution execution;
-
-    private ExecutionContract(Execution execution) {
-        this.execution = execution;
+class ExecutionContract private constructor(private val execution: Execution) {
+    fun execution(): Execution {
+        return execution
     }
 
-    public static ExecutionContract forExecution(Execution e) {
-        return new ExecutionContract(e);
+    fun symbol(): String {
+        return execution.symbol
     }
 
-    public static String cid(Execution e) {
-        return e.getSymbol() + "_" + e.getCurrency() + "_" + e.getSecType() + "_" + String.valueOf(e.getMultiplier()).replace(".", "_");
+    fun currency(): Currency {
+        return execution.currency
     }
 
-    public Execution execution() {
-        return execution;
+    fun secType(): SecType {
+        return execution.secType
     }
 
-    public String symbol() {
-        return execution.getSymbol();
+    fun multiplier(): Double {
+        return execution.multiplier
     }
 
-    public Currency currency() {
-        return execution.getCurrency();
+    override fun toString(): String {
+        return cid(execution)
     }
 
-    public Types.SecType secType() {
-        return execution.getSecType();
-    }
+    companion object {
+        fun forExecution(e: Execution): ExecutionContract {
+            return ExecutionContract(e)
+        }
 
-    public double multiplier() {
-        return execution.getMultiplier();
-    }
-
-    @Override
-    public String toString() {
-        return cid(execution);
+        fun cid(e: Execution): String {
+            return e.symbol + "_" + e.currency + "_" + e.secType + "_" + e.multiplier.toString().replace(".", "_")
+        }
     }
 }

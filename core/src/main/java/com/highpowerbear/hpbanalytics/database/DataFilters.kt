@@ -1,127 +1,156 @@
-package com.highpowerbear.hpbanalytics.database;
+package com.highpowerbear.hpbanalytics.database
 
-import com.highpowerbear.hpbanalytics.enums.Currency;
-import com.highpowerbear.hpbanalytics.enums.DataFilterOperator;
-import com.highpowerbear.hpbanalytics.enums.TradeStatus;
-import com.highpowerbear.hpbanalytics.enums.TradeType;
-import com.highpowerbear.hpbanalytics.model.DataFilterItem;
-import com.ib.client.Types;
-import org.springframework.data.domain.Example;
-import org.springframework.data.jpa.domain.Specification;
-
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
-import java.text.MessageFormat;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import com.highpowerbear.hpbanalytics.enums.Currency
+import com.highpowerbear.hpbanalytics.enums.DataFilterOperator
+import com.highpowerbear.hpbanalytics.enums.TradeStatus
+import com.highpowerbear.hpbanalytics.enums.TradeType
+import com.highpowerbear.hpbanalytics.model.DataFilterItem
+import com.ib.client.Types.SecType
+import org.springframework.data.domain.Example
+import org.springframework.data.jpa.domain.Specification
+import java.text.MessageFormat
+import java.time.LocalDateTime
+import java.util.*
+import java.util.function.Consumer
+import javax.persistence.criteria.CriteriaBuilder
+import javax.persistence.criteria.CriteriaQuery
+import javax.persistence.criteria.Predicate
+import javax.persistence.criteria.Root
 
 /**
  * Created by robertk on 4/19/2020.
  */
-public class DataFilters {
-
-    public static Example<Trade> tradeExample(TradeType tradeType, Types.SecType secType, Currency currency, String underlying) {
-        return Example.of(new Trade()
+object DataFilters {
+    fun tradeExample(
+        tradeType: TradeType?,
+        secType: SecType?,
+        currency: Currency?,
+        underlying: String?
+    ): Example<Trade> {
+        return Example.of(
+            Trade()
                 .setType(tradeType)
                 .setSecType(secType)
                 .setCurrency(currency)
-                .setUnderlying(underlying));
+                .setUnderlying(underlying)
+        )
     }
 
-    public static Specification<Execution> executionSpecification(List<DataFilterItem> dataFilterItems) {
-        return (root, query, builder) -> build(root, builder, dataFilterItems);
+    @JvmStatic
+    fun executionSpecification(dataFilterItems: List<DataFilterItem>): Specification<Execution> {
+        return Specification { root: Root<Execution>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
+            build(
+                root,
+                builder,
+                dataFilterItems
+            )
+        }
     }
 
-    public static Specification<Trade> tradeSpecification(List<DataFilterItem> dataFilterItems) {
-        return (root, query, builder) -> build(root, builder, dataFilterItems);
+    fun tradeSpecification(dataFilterItems: List<DataFilterItem>): Specification<Trade> {
+        return Specification { root: Root<Trade>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
+            build(
+                root,
+                builder,
+                dataFilterItems
+            )
+        }
     }
 
-    public static Specification<Trade> tradeSpecification(TradeType tradeType, Types.SecType secType, Currency currency, String underlying, LocalDateTime cutoffDate) {
-        return (root, query, builder) -> {
-            List<Predicate> predicates = new ArrayList<>();
+    fun tradeSpecification(
+        tradeType: TradeType?,
+        secType: SecType?,
+        currency: Currency?,
+        underlying: String?,
+        cutoffDate: LocalDateTime
+    ): Specification<Trade?> {
+        return Specification { root: Root<Trade?>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
+            val predicates: MutableList<Predicate> = ArrayList()
             if (tradeType != null) {
-                predicates.add(builder.equal(root.get("type"), tradeType));
+                predicates.add(builder.equal(root.get<Any>("type"), tradeType))
             }
             if (secType != null) {
-                predicates.add(builder.equal(root.get("secType"), secType));
+                predicates.add(builder.equal(root.get<Any>("secType"), secType))
             }
             if (currency != null) {
-                predicates.add(builder.equal(root.get("currency"), currency));
+                predicates.add(builder.equal(root.get<Any>("currency"), currency))
             }
             if (underlying != null) {
-                predicates.add(builder.equal(root.get("underlying"), underlying));
+                predicates.add(builder.equal(root.get<Any>("underlying"), underlying))
             }
-            predicates.add(builder.or(
+            predicates.add(
+                builder.or(
                     builder.greaterThanOrEqualTo(root.get("openDate"), cutoffDate),
                     builder.greaterThanOrEqualTo(root.get("closeDate"), cutoffDate),
-                    builder.isNull(root.get("closeDate"))));
-
-            return builder.and(predicates.toArray(new Predicate[0]));
-        };
+                    builder.isNull(root.get<Any>("closeDate"))
+                )
+            )
+            builder.and(*predicates.toTypedArray())
+        }
     }
 
-    private static <R> Predicate build(Root<R> root, CriteriaBuilder builder, List<DataFilterItem> dataFilterItems) {
-        List<Predicate> outerAndPredicates = new ArrayList<>();
-        List<Predicate> innerOrPredicates = new ArrayList<>();
-
-        for (DataFilterItem item : dataFilterItems) {
-            DataFilterOperator operator = DataFilterOperator.valueOf(item.getOperator().toUpperCase());
-            String field = item.getProperty();
-
-            switch (operator) {
-                case LIKE:
-                    switch (field) {
-                        case "symbol":
-                        case "underlying":
-                            String likeStr = MessageFormat.format("%{0}%", item.getValue());
-                            outerAndPredicates.add(builder.like(root.get(field), likeStr));
-                            break;
+    private fun <R> build(root: Root<R>, builder: CriteriaBuilder, dataFilterItems: List<DataFilterItem>): Predicate {
+        val outerAndPredicates = mutableListOf<Predicate>()
+        val innerOrPredicates = mutableListOf<Predicate>()
+        for (item in dataFilterItems) {
+            val operator = DataFilterOperator.valueOf(item.operator!!.uppercase(Locale.getDefault()))
+            val field = item.property
+            when (operator) {
+                DataFilterOperator.LIKE -> when (field) {
+                    "symbol", "underlying" -> {
+                        val likeStr = MessageFormat.format("%{0}%", item.value)
+                        outerAndPredicates.add(builder.like(root.get(field), likeStr))
                     }
-                    break;
-                case EQ:
-                    if ("multiplier".equals(field)) {
-                        outerAndPredicates.add(builder.equal(root.get(field), builder.literal(item.getDoubleValue())));
+                }
+                DataFilterOperator.EQ -> if ("multiplier" == field) {
+                    outerAndPredicates.add(builder.equal(root.get<String>(field), builder.literal(item.doubleValue)))
+                }
+                DataFilterOperator.LT -> if ("multiplier" == field) {
+                    innerOrPredicates.add(builder.lessThan(root.get(field), builder.literal<Double>(item.doubleValue)))
+                }
+                DataFilterOperator.GT -> if ("multiplier" == field) {
+                    innerOrPredicates.add(builder.greaterThan(root.get(field), builder.literal<Double>(item.doubleValue)))
+                }
+                DataFilterOperator.IN -> when (field) {
+                    "currency" -> {
+                        val inPredicate = builder.`in`(root.get<Currency>(field))
+                        item.getValues().forEach(Consumer { value: String? ->
+                            inPredicate.value(
+                                Currency.valueOf(
+                                    value!!
+                                )
+                            )
+                        })
+                        outerAndPredicates.add(inPredicate)
                     }
-                    break;
-                case LT:
-                    if ("multiplier".equals(field)) {
-                        innerOrPredicates.add(builder.lessThan(root.get(field), builder.literal(item.getDoubleValue())));
+                    "secType" -> {
+                        val inPredicate = builder.`in`(root.get<SecType>(field))
+                        item.getValues().forEach(Consumer { value: String? ->
+                            inPredicate.value(
+                                SecType.valueOf(
+                                    value!!
+                                )
+                            )
+                        })
+                        outerAndPredicates.add(inPredicate)
                     }
-                    break;
-                case GT:
-                    if ("multiplier".equals(field)) {
-                        innerOrPredicates.add(builder.greaterThan(root.get(field), builder.literal(item.getDoubleValue())));
+                    "status" -> {
+                        val inPredicate = builder.`in`(root.get<TradeStatus>(field))
+                        item.getValues().forEach(Consumer { value: String? ->
+                            inPredicate.value(
+                                TradeStatus.valueOf(
+                                    value!!
+                                )
+                            )
+                        })
+                        outerAndPredicates.add(inPredicate)
                     }
-                    break;
-                case IN:
-                    switch (field) {
-                        case "currency": {
-                            CriteriaBuilder.In<Currency> inPredicate = builder.in(root.get(field));
-                            item.getValues().forEach(value -> inPredicate.value(Currency.valueOf(value)));
-                            outerAndPredicates.add(inPredicate);
-                            break;
-                        }
-                        case "secType": {
-                            CriteriaBuilder.In<Types.SecType> inPredicate = builder.in(root.get(field));
-                            item.getValues().forEach(value -> inPredicate.value(Types.SecType.valueOf(value)));
-                            outerAndPredicates.add(inPredicate);
-                            break;
-                        }
-                        case "status": {
-                            CriteriaBuilder.In<TradeStatus> inPredicate = builder.in(root.get(field));
-                            item.getValues().forEach(value -> inPredicate.value(TradeStatus.valueOf(value)));
-                            outerAndPredicates.add(inPredicate);
-                            break;
-                        }
-                    }
-                    break;
+                }
             }
         }
         if (!innerOrPredicates.isEmpty()) {
-            outerAndPredicates.add(builder.or(innerOrPredicates.toArray(new Predicate[0])));
+            outerAndPredicates.add(builder.or(*innerOrPredicates.toTypedArray()))
         }
-        return builder.and(outerAndPredicates.toArray(new Predicate[0]));
+        return builder.and(*outerAndPredicates.toTypedArray())
     }
 }

@@ -1,48 +1,31 @@
-package com.highpowerbear.hpbanalytics.model;
+package com.highpowerbear.hpbanalytics.model
 
 /**
  * Created by robertk on 10/25/2020.
  */
-public class TradeStatistics {
+class TradeStatistics {
+    var numAllTrades: Long = 0
+    var numAllUnderlyings: Long = 0
+    var numOpenTrades: Long = 0
+    var numOpenUnderlyings: Long = 0
 
-    private long numAllTrades;
-    private long numAllUnderlyings;
-    private long numOpenTrades;
-    private long numOpenUnderlyings;
-
-    public long getNumAllTrades() {
-        return numAllTrades;
+    fun setNumAllTrades(numAllTrades: Long): TradeStatistics {
+        this.numAllTrades = numAllTrades
+        return this
     }
 
-    public TradeStatistics setNumAllTrades(long numAllTrades) {
-        this.numAllTrades = numAllTrades;
-        return this;
+    fun setNumAllUnderlyings(numAllUnderlyings: Long): TradeStatistics {
+        this.numAllUnderlyings = numAllUnderlyings
+        return this
     }
 
-    public long getNumAllUnderlyings() {
-        return numAllUnderlyings;
+    fun setNumOpenTrades(numOpenTrades: Long): TradeStatistics {
+        this.numOpenTrades = numOpenTrades
+        return this
     }
 
-    public TradeStatistics setNumAllUnderlyings(long numAllUnderlyings) {
-        this.numAllUnderlyings = numAllUnderlyings;
-        return this;
-    }
-
-    public long getNumOpenTrades() {
-        return numOpenTrades;
-    }
-
-    public TradeStatistics setNumOpenTrades(long numOpenTrades) {
-        this.numOpenTrades = numOpenTrades;
-        return this;
-    }
-
-    public long getNumOpenUnderlyings() {
-        return numOpenUnderlyings;
-    }
-
-    public TradeStatistics setNumOpenUnderlyings(long numOpenUnderlyings) {
-        this.numOpenUnderlyings = numOpenUnderlyings;
-        return this;
+    fun setNumOpenUnderlyings(numOpenUnderlyings: Long): TradeStatistics {
+        this.numOpenUnderlyings = numOpenUnderlyings
+        return this
     }
 }

@@ -154,12 +154,13 @@ open class AnalyticsService @Autowired constructor(private val executionReposito
         tradeStatistics
                 .setNumAllTrades(tradeRepository.count())
                 .setNumAllUnderlyings(tradeRepository.countAllUnderlyings())
-                .setNumOpenTrades(tradeRepository.countOpenTrades()).numOpenUnderlyings = tradeRepository.countOpenUnderlyings()
+                .setNumOpenTrades(tradeRepository.countOpenTrades())
+                .setNumOpenUnderlyings(tradeRepository.countOpenUnderlyings())
     }
 
     private fun generateTrades(executions: List<Execution>): List<Trade> {
         val trades: MutableList<Trade> = ArrayList()
-        val cids = executions.stream().map { e: Execution? -> ExecutionContract.cid(e) }.collect(Collectors.toSet())
+        val cids = executions.stream().map { e: Execution -> ExecutionContract.cid(e) }.collect(Collectors.toSet())
         val executionsPerCidMap: MutableMap<String, MutableList<Execution>> = HashMap() // contract identifier -> list of executions
         cids.forEach(Consumer { cid: String -> executionsPerCidMap[cid] = ArrayList() })
         for (execution in executions) {

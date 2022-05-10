@@ -1,199 +1,124 @@
-package com.highpowerbear.hpbanalytics.model;
+package com.highpowerbear.hpbanalytics.model
 
-import java.io.Serializable;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.io.Serializable
+import java.time.LocalDateTime
+import java.math.BigDecimal
 
 /**
  *
  * Created by robertk on 4/26/2015.
  */
-public class Statistics implements Serializable {
-    private static final long serialVersionUID = 8464224239795026258L;
+class Statistics : Serializable {
+    var id = 0
+    var periodDate: LocalDateTime? = null
+    var numExecs = 0
+    var numOpened = 0
+    var numClosed = 0
+    var numWinners = 0
+    var numLosers = 0
+    var pctWinners = 0.0
+    var bigWinner: BigDecimal? = null
+    var bigLoser: BigDecimal? = null
+    var winnersProfit: BigDecimal? = null
+    var losersLoss: BigDecimal? = null
+    var timeValueBought: BigDecimal? = null
+    var timeValueSold: BigDecimal? = null
+    var timeValueSum: BigDecimal? = null
+    var profitLoss: BigDecimal? = null
+    var profitLossTaxReport: BigDecimal? = null
+    var cumulProfitLoss: BigDecimal? = null
 
-    private int id;
-    private LocalDateTime periodDate;
-    private int numExecs;
-    private int numOpened;
-    private int numClosed;
-    private int numWinners;
-    private int numLosers;
-    private double pctWinners;
-    private BigDecimal bigWinner;
-    private BigDecimal bigLoser;
-    private BigDecimal winnersProfit;
-    private BigDecimal losersLoss;
-    private BigDecimal timeValueBought;
-    private BigDecimal timeValueSold;
-    private BigDecimal timeValueSum;
-    private BigDecimal profitLoss;
-    private BigDecimal profitLossTaxReport;
-    private BigDecimal cumulProfitLoss;
-
-    public int getId() {
-        return id;
+    fun setId(id: Int): Statistics {
+        this.id = id
+        return this
     }
 
-    public Statistics setId(int id) {
-        this.id = id;
-        return this;
+    fun setPeriodDate(periodDate: LocalDateTime?): Statistics {
+        this.periodDate = periodDate
+        return this
     }
 
-    public LocalDateTime getPeriodDate() {
-        return periodDate;
+    fun setNumExecs(numExecs: Int): Statistics {
+        this.numExecs = numExecs
+        return this
     }
 
-    public Statistics setPeriodDate(LocalDateTime periodDate) {
-        this.periodDate = periodDate;
-        return this;
+    fun setNumOpened(numOpened: Int): Statistics {
+        this.numOpened = numOpened
+        return this
     }
 
-    public int getNumExecs() {
-        return numExecs;
+    fun setNumClosed(numClosed: Int): Statistics {
+        this.numClosed = numClosed
+        return this
     }
 
-    public Statistics setNumExecs(int numExecs) {
-        this.numExecs = numExecs;
-        return this;
+    fun setNumWinners(numWinners: Int): Statistics {
+        this.numWinners = numWinners
+        return this
     }
 
-    public int getNumOpened() {
-        return numOpened;
+    fun setNumLosers(numLosers: Int): Statistics {
+        this.numLosers = numLosers
+        return this
     }
 
-    public Statistics setNumOpened(int numOpened) {
-        this.numOpened = numOpened;
-        return this;
+    fun setPctWinners(pctWinners: Double): Statistics {
+        this.pctWinners = pctWinners
+        return this
     }
 
-    public int getNumClosed() {
-        return numClosed;
+    fun setBigWinner(bigWinner: BigDecimal?): Statistics {
+        this.bigWinner = bigWinner
+        return this
     }
 
-    public Statistics setNumClosed(int numClosed) {
-        this.numClosed = numClosed;
-        return this;
+    fun setBigLoser(bigLoser: BigDecimal?): Statistics {
+        this.bigLoser = bigLoser
+        return this
     }
 
-    public int getNumWinners() {
-        return numWinners;
+    fun setWinnersProfit(winnersProfit: BigDecimal?): Statistics {
+        this.winnersProfit = winnersProfit
+        return this
     }
 
-    public Statistics setNumWinners(int numWinners) {
-        this.numWinners = numWinners;
-        return this;
+    fun setLosersLoss(losersLoss: BigDecimal?): Statistics {
+        this.losersLoss = losersLoss
+        return this
     }
 
-    public int getNumLosers() {
-        return numLosers;
+    fun setTimeValueBought(timeValueBought: BigDecimal?): Statistics {
+        this.timeValueBought = timeValueBought
+        return this
     }
 
-    public Statistics setNumLosers(int numLosers) {
-        this.numLosers = numLosers;
-        return this;
+    fun setTimeValueSold(timeValueSold: BigDecimal?): Statistics {
+        this.timeValueSold = timeValueSold
+        return this
     }
 
-    public double getPctWinners() {
-        return pctWinners;
+    fun setTimeValueSum(timeValueSum: BigDecimal?): Statistics {
+        this.timeValueSum = timeValueSum
+        return this
     }
 
-    public Statistics setPctWinners(double pctWinners) {
-        this.pctWinners = pctWinners;
-        return this;
+    fun setProfitLoss(profitLoss: BigDecimal?): Statistics {
+        this.profitLoss = profitLoss
+        return this
     }
 
-    public BigDecimal getBigWinner() {
-        return bigWinner;
+    fun setProfitLossTaxReport(profitLossTaxReport: BigDecimal?): Statistics {
+        this.profitLossTaxReport = profitLossTaxReport
+        return this
     }
 
-    public Statistics setBigWinner(BigDecimal bigWinner) {
-        this.bigWinner = bigWinner;
-        return this;
+    fun setCumulProfitLoss(cumulProfitLoss: BigDecimal?): Statistics {
+        this.cumulProfitLoss = cumulProfitLoss
+        return this
     }
 
-    public BigDecimal getBigLoser() {
-        return bigLoser;
-    }
-
-    public Statistics setBigLoser(BigDecimal bigLoser) {
-        this.bigLoser = bigLoser;
-        return this;
-    }
-
-    public BigDecimal getWinnersProfit() {
-        return winnersProfit;
-    }
-
-    public Statistics setWinnersProfit(BigDecimal winnersProfit) {
-        this.winnersProfit = winnersProfit;
-        return this;
-    }
-
-    public BigDecimal getLosersLoss() {
-        return losersLoss;
-    }
-
-    public Statistics setLosersLoss(BigDecimal losersLoss) {
-        this.losersLoss = losersLoss;
-        return this;
-    }
-
-    public BigDecimal getTimeValueBought() {
-        return timeValueBought;
-    }
-
-    public Statistics setTimeValueBought(BigDecimal timeValueBought) {
-        this.timeValueBought = timeValueBought;
-        return this;
-    }
-
-    public BigDecimal getTimeValueSold() {
-        return timeValueSold;
-    }
-
-    public Statistics setTimeValueSold(BigDecimal timeValueSold) {
-        this.timeValueSold = timeValueSold;
-        return this;
-    }
-
-    public BigDecimal getTimeValueSum() {
-        return timeValueSum;
-    }
-
-    public Statistics setTimeValueSum(BigDecimal timeValueSum) {
-        this.timeValueSum = timeValueSum;
-        return this;
-    }
-
-    public BigDecimal getProfitLoss() {
-        return profitLoss;
-    }
-
-    public Statistics setProfitLoss(BigDecimal profitLoss) {
-        this.profitLoss = profitLoss;
-        return this;
-    }
-
-    public BigDecimal getProfitLossTaxReport() {
-        return profitLossTaxReport;
-    }
-
-    public Statistics setProfitLossTaxReport(BigDecimal profitLossTaxReport) {
-        this.profitLossTaxReport = profitLossTaxReport;
-        return this;
-    }
-
-    public BigDecimal getCumulProfitLoss() {
-        return cumulProfitLoss;
-    }
-
-    public Statistics setCumulProfitLoss(BigDecimal cumulProfitLoss) {
-        this.cumulProfitLoss = cumulProfitLoss;
-        return this;
-    }
-
-    @Override
-    public String toString() {
+    override fun toString(): String {
         return "Statistics{" +
                 "id=" + id +
                 ", periodDate=" + periodDate +
@@ -213,6 +138,10 @@ public class Statistics implements Serializable {
                 ", profitLoss=" + profitLoss +
                 ", profitLossTaxReport=" + profitLossTaxReport +
                 ", cumulProfitLoss=" + cumulProfitLoss +
-                '}';
+                '}'
+    }
+
+    companion object {
+        private const val serialVersionUID = 8464224239795026258L
     }
 }
