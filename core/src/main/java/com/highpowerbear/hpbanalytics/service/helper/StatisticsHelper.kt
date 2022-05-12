@@ -42,7 +42,6 @@ class StatisticsHelper @Autowired constructor(private val exchangeRateService: E
     fun timeValueSum(executions: List<Execution>, action: Types.Action): BigDecimal {
         return executions.stream()
             .filter { e: Execution -> e.action == action }
-            .filter { e: Execution -> e.timeValue != null }
             .map { e: Execution -> valueBase(e.timeValue, e.fillDate.toLocalDate(), e.currency) }
             .reduce(BigDecimal.ZERO) { obj: BigDecimal, augend: BigDecimal? -> obj.add(augend) }
     }
@@ -61,24 +60,22 @@ class StatisticsHelper @Autowired constructor(private val exchangeRateService: E
     }
 
     fun lastDate(trades: List<Trade>): LocalDateTime {
-        return trades.stream()
-            .flatMap { t: Trade -> t.executions.stream() }
-            .map { obj: Execution -> obj.fillDate }
-            .max { obj: LocalDateTime?, other: LocalDateTime? -> obj!!.compareTo(other) }
-            .orElse(LocalDateTime.MIN)
+        return trades
+            .flatMap { t: Trade -> t.executions }
+            .maxByOrNull { e: Execution -> e.fillDate }
+            ?.fillDate ?: LocalDateTime.MIN
+
     }
 
     fun getTradesOpenedForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Trade> {
-        return trades.stream()
+        return trades
             .filter { t: Trade -> toBeginOfPeriod(t.openDate, interval).isEqual(periodDate) }
-            .collect(Collectors.toList())
     }
 
     fun getTradesClosedForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Trade> {
-        return trades.stream()
-            .filter { t: Trade -> t.closeDate != null }
-            .filter { t: Trade -> toBeginOfPeriod(t.closeDate, interval).isEqual(periodDate) }
-            .collect(Collectors.toList())
+        return trades
+            .filter { t: Trade -> t.closeDate != null}
+            .filter { t: Trade -> toBeginOfPeriod(t.closeDate!!, interval).isEqual(periodDate) }
     }
 
     fun getExecutionsForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Execution> {

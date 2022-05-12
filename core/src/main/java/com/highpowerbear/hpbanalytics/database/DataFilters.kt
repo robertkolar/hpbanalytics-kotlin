@@ -28,16 +28,16 @@ object DataFilters {
         underlying: String?
     ): Example<Trade> {
         return Example.of(
-            Trade()
-                .setType(tradeType)
-                .setSecType(secType)
-                .setCurrency(currency)
-                .setUnderlying(underlying)
+            Trade().apply {
+                type = tradeType
+                this.secType = secType
+                this.currency = currency
+                this.underlying = underlying
+            }
         )
     }
 
-    @JvmStatic
-    fun executionSpecification(dataFilterItems: List<DataFilterItem>): Specification<Execution> {
+    fun executionSpecification(dataFilterItems: List<DataFilterItem>): Specification<Execution?> {
         return Specification { root: Root<Execution>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
             build(
                 root,
@@ -47,7 +47,7 @@ object DataFilters {
         }
     }
 
-    fun tradeSpecification(dataFilterItems: List<DataFilterItem>): Specification<Trade> {
+    fun tradeSpecification(dataFilterItems: List<DataFilterItem>): Specification<Trade?> {
         return Specification { root: Root<Trade>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
             build(
                 root,

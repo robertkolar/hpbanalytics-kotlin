@@ -181,7 +181,7 @@ open class AnalyticsService @Autowired constructor(private val executionReposito
         val trades: MutableList<Trade> = ArrayList()
         var currentPos = 0.0
         val singleContractSet: MutableSet<Execution> = LinkedHashSet(executions)
-        while (!singleContractSet.isEmpty()) {
+        while (singleContractSet.isNotEmpty()) {
             val trade = Trade()
             for (execution in singleContractSet) {
                 trade.executions.add(execution)

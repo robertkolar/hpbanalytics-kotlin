@@ -35,10 +35,10 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
                                                private val executorService: ScheduledExecutorService,
                                                private val statisticsMap: MutableMap<String, List<Statistics>>,
                                                private val currentStatisticsMap: MutableMap<String, List<Statistics>>) {
-    fun getStatistics(interval: ChronoUnit?, tradeType: String?, secType: String?, currency: String?, underlying: String?, maxPoints: Int?): List<Statistics> {
+    fun getStatistics(interval: ChronoUnit?, tradeType: String?, secType: String?, currency: String?, underlying: String?, maxPoints: Int?): MutableList<Statistics> {
         val maxPointsMod: Int
         val statisticsList = statisticsMap[helper.statisticsKey(interval, tradeType, secType, currency, underlying)]
-                ?: return emptyList()
+                ?: return mutableListOf()
         val size = statisticsList.size
         maxPointsMod = if (maxPoints == null || size < maxPoints) {
             size
@@ -72,7 +72,7 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         }
     }
 
-    fun calculateCurrentStatistics(tradeType: String, secType: String, currency: String, underlying: String, reload: Boolean) {
+    fun calculateCurrentStatistics(tradeType: String, secType: String, currency: String, underlying: String?, reload: Boolean) {
         log.info("BEGIN current statistics calculation for tradeType=$tradeType, secType=$secType, currency=$currency, undl=$underlying")
         val cutoffDate = helper.toBeginOfPeriod(LocalDateTime.now(), ChronoUnit.YEARS)
         val tradeSpecification = DataFilters.tradeSpecification(
@@ -82,7 +82,7 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
                 if (HanSettings.ALL == underlying) null else underlying,
                 cutoffDate
         )
-        val trades = tradeRepository.findAll(tradeSpecification, Sort.by(Sort.Direction.ASC, "openDate"))
+        val trades = tradeRepository.findAll(tradeSpecification, Sort.by(Sort.Direction.ASC, "openDate")).filterNotNull().toMutableList()
         val daily = calculateCurrent(trades, ChronoUnit.DAYS)
         val monthly = calculateCurrent(trades, ChronoUnit.MONTHS)
         val yearly = calculateCurrent(trades, ChronoUnit.YEARS)
@@ -97,13 +97,13 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         val all = HanSettings.ALL
         val secType = execution.secType.name
         val undl = execution.underlying
-        Stream.of(all, secType).forEach { st: String -> Stream.of(all, undl).forEach { u: String -> calculateCurrentStatistics(all, st, all, u, false) } }
+        Stream.of(all, secType).forEach { st: String -> Stream.of(all, undl).forEach { u: String? -> calculateCurrentStatistics(all, st, all, u, false) } }
         messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS)
     }
 
-    private fun calculate(trades: List<Trade>?, interval: ChronoUnit): List<Statistics> {
+    private fun calculate(trades: MutableList<Trade>, interval: ChronoUnit): List<Statistics> {
         val statisticsList: MutableList<Statistics> = ArrayList()
-        if (trades == null || trades.isEmpty()) {
+        if (trades.isEmpty()) {
             return statisticsList
         }
         val firstPeriodDate = helper.toBeginOfPeriod(helper.firstDate(trades), interval)
@@ -122,7 +122,7 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         return statisticsList
     }
 
-    private fun calculateCurrent(trades: List<Trade>, interval: ChronoUnit): Statistics {
+    private fun calculateCurrent(trades: MutableList<Trade>, interval: ChronoUnit): Statistics {
         val statistics = calculatePeriod(trades, interval, helper.toBeginOfPeriod(LocalDateTime.now(), interval))
         val statisticsId = if (interval == ChronoUnit.DAYS) 1 else if (interval == ChronoUnit.MONTHS) 2 else 3
         return statistics.apply {
@@ -131,8 +131,8 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         }
     }
 
-    private fun calculatePeriod(trades: List<Trade>?, interval: ChronoUnit, periodDate: LocalDateTime): Statistics {
-        if (trades == null || trades.isEmpty()) {
+    private fun calculatePeriod(trades: MutableList<Trade>, interval: ChronoUnit, periodDate: LocalDateTime): Statistics {
+        if (trades.isEmpty()) {
             return Statistics()
         }
         val tradesOpenedForPeriod = helper.getTradesOpenedForPeriod(trades, periodDate, interval)
