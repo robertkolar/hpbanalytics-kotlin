@@ -24,60 +24,15 @@ class ExchangeRate : Serializable {
     var eurHkd: Double = 0.0
     var eurSgd: Double = 0.0
 
-    override fun equals(o: Any?): Boolean {
-        if (this === o) return true
-        if (o == null || javaClass != o.javaClass) return false
-        val that = o as ExchangeRate
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || javaClass != other.javaClass) return false
+        val that = other as ExchangeRate
         return date == that.date
     }
 
     override fun hashCode(): Int {
         return date.hashCode()
-    }
-
-    fun setDate(date: String): ExchangeRate {
-        this.date = date
-        return this
-    }
-
-    fun setEurUsd(eurUsd: Double): ExchangeRate {
-        this.eurUsd = eurUsd
-        return this
-    }
-
-    fun setEurGbp(eurGbp: Double): ExchangeRate {
-        this.eurGbp = eurGbp
-        return this
-    }
-
-    fun setEurChf(eurChf: Double): ExchangeRate {
-        this.eurChf = eurChf
-        return this
-    }
-
-    fun setEurAud(eurAud: Double): ExchangeRate {
-        this.eurAud = eurAud
-        return this
-    }
-
-    fun setEurJpy(eurJpy: Double): ExchangeRate {
-        this.eurJpy = eurJpy
-        return this
-    }
-
-    fun setEurKrw(eurKrw: Double): ExchangeRate {
-        this.eurKrw = eurKrw
-        return this
-    }
-
-    fun setEurHkd(eurHkd: Double): ExchangeRate {
-        this.eurHkd = eurHkd
-        return this
-    }
-
-    fun setEurSgd(eurSgd: Double): ExchangeRate {
-        this.eurSgd = eurSgd
-        return this
     }
 
     companion object {

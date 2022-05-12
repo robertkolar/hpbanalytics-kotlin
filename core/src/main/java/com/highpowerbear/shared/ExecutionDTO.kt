@@ -1,130 +1,28 @@
-package com.highpowerbear.shared;
+package com.highpowerbear.shared
 
-import com.ib.client.Types;
-
-import java.io.Serializable;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import com.ib.client.Types.SecType
+import java.time.LocalDateTime
+import java.math.BigDecimal
+import com.ib.client.Types
+import java.io.Serializable
 
 /**
  * Created by robertk on 10/3/2020.
  */
-public class ExecutionDTO implements Serializable {
-    private static final long serialVersionUID = -7595159006402413521L;
+class ExecutionDTO : Serializable {
+    var reference: String = ""
+    var action: Types.Action = Types.Action.BUY
+    var quantity: Double = 0.0
+    var symbol: String = ""
+    var underlying: String = ""
+    var currency: String = ""
+    var secType: SecType = SecType.FOP
+    var multiplier: Double = 0.0
+    var fillDate: LocalDateTime = LocalDateTime.MIN
+    var fillPrice: BigDecimal = BigDecimal.ZERO
+    var inTheMoney: BigDecimal = BigDecimal.ZERO
 
-    private String reference;
-    private Types.Action action;
-    private Double quantity;
-    private String symbol;
-    private String underlying;
-    private String currency;
-    private Types.SecType secType;
-    private Double multiplier;
-    private LocalDateTime fillDate;
-    private BigDecimal fillPrice;
-    private BigDecimal inTheMoney;
-
-    public String getReference() {
-        return reference;
-    }
-
-    public ExecutionDTO setReference(String reference) {
-        this.reference = reference;
-        return this;
-    }
-
-    public Types.Action getAction() {
-        return action;
-    }
-
-    public ExecutionDTO setAction(Types.Action action) {
-        this.action = action;
-        return this;
-    }
-
-    public Double getQuantity() {
-        return quantity;
-    }
-
-    public ExecutionDTO setQuantity(Double quantity) {
-        this.quantity = quantity;
-        return this;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public ExecutionDTO setSymbol(String symbol) {
-        this.symbol = symbol;
-        return this;
-    }
-
-    public String getUnderlying() {
-        return underlying;
-    }
-
-    public ExecutionDTO setUnderlying(String underlying) {
-        this.underlying = underlying;
-        return this;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public ExecutionDTO setCurrency(String currency) {
-        this.currency = currency;
-        return this;
-    }
-
-    public Types.SecType getSecType() {
-        return secType;
-    }
-
-    public ExecutionDTO setSecType(Types.SecType secType) {
-        this.secType = secType;
-        return this;
-    }
-
-    public Double getMultiplier() {
-        return multiplier;
-    }
-
-    public ExecutionDTO setMultiplier(Double multiplier) {
-        this.multiplier = multiplier;
-        return this;
-    }
-
-    public LocalDateTime getFillDate() {
-        return fillDate;
-    }
-
-    public ExecutionDTO setFillDate(LocalDateTime fillDate) {
-        this.fillDate = fillDate;
-        return this;
-    }
-
-    public BigDecimal getFillPrice() {
-        return fillPrice;
-    }
-
-    public ExecutionDTO setFillPrice(BigDecimal fillPrice) {
-        this.fillPrice = fillPrice;
-        return this;
-    }
-
-    public BigDecimal getInTheMoney() {
-        return inTheMoney;
-    }
-
-    public ExecutionDTO setInTheMoney(BigDecimal inTheMoney) {
-        this.inTheMoney = inTheMoney;
-        return this;
-    }
-
-    @Override
-    public String toString() {
+    override fun toString(): String {
         return "ExecutionDTO{" +
                 "reference='" + reference + '\'' +
                 ", action=" + action +
@@ -137,6 +35,10 @@ public class ExecutionDTO implements Serializable {
                 ", fillDate=" + fillDate +
                 ", fillPrice=" + fillPrice +
                 ", inTheMoney=" + inTheMoney +
-                '}';
+                '}'
+    }
+
+    companion object {
+        private const val serialVersionUID = -7595159006402413521L
     }
 }

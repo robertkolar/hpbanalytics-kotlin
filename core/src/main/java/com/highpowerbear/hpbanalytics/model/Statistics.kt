@@ -17,106 +17,16 @@ class Statistics : Serializable {
     var numWinners = 0
     var numLosers = 0
     var pctWinners = 0.0
-    var bigWinner: BigDecimal? = null
-    var bigLoser: BigDecimal? = null
-    var winnersProfit: BigDecimal? = null
-    var losersLoss: BigDecimal? = null
-    var timeValueBought: BigDecimal? = null
-    var timeValueSold: BigDecimal? = null
-    var timeValueSum: BigDecimal? = null
-    var profitLoss: BigDecimal? = null
-    var profitLossTaxReport: BigDecimal? = null
-    var cumulProfitLoss: BigDecimal? = null
-
-    fun setId(id: Int): Statistics {
-        this.id = id
-        return this
-    }
-
-    fun setPeriodDate(periodDate: LocalDateTime?): Statistics {
-        this.periodDate = periodDate
-        return this
-    }
-
-    fun setNumExecs(numExecs: Int): Statistics {
-        this.numExecs = numExecs
-        return this
-    }
-
-    fun setNumOpened(numOpened: Int): Statistics {
-        this.numOpened = numOpened
-        return this
-    }
-
-    fun setNumClosed(numClosed: Int): Statistics {
-        this.numClosed = numClosed
-        return this
-    }
-
-    fun setNumWinners(numWinners: Int): Statistics {
-        this.numWinners = numWinners
-        return this
-    }
-
-    fun setNumLosers(numLosers: Int): Statistics {
-        this.numLosers = numLosers
-        return this
-    }
-
-    fun setPctWinners(pctWinners: Double): Statistics {
-        this.pctWinners = pctWinners
-        return this
-    }
-
-    fun setBigWinner(bigWinner: BigDecimal?): Statistics {
-        this.bigWinner = bigWinner
-        return this
-    }
-
-    fun setBigLoser(bigLoser: BigDecimal?): Statistics {
-        this.bigLoser = bigLoser
-        return this
-    }
-
-    fun setWinnersProfit(winnersProfit: BigDecimal?): Statistics {
-        this.winnersProfit = winnersProfit
-        return this
-    }
-
-    fun setLosersLoss(losersLoss: BigDecimal?): Statistics {
-        this.losersLoss = losersLoss
-        return this
-    }
-
-    fun setTimeValueBought(timeValueBought: BigDecimal?): Statistics {
-        this.timeValueBought = timeValueBought
-        return this
-    }
-
-    fun setTimeValueSold(timeValueSold: BigDecimal?): Statistics {
-        this.timeValueSold = timeValueSold
-        return this
-    }
-
-    fun setTimeValueSum(timeValueSum: BigDecimal?): Statistics {
-        this.timeValueSum = timeValueSum
-        return this
-    }
-
-    fun setProfitLoss(profitLoss: BigDecimal?): Statistics {
-        this.profitLoss = profitLoss
-        return this
-    }
-
-    fun setProfitLossTaxReport(profitLossTaxReport: BigDecimal?): Statistics {
-        this.profitLossTaxReport = profitLossTaxReport
-        return this
-    }
-
-    fun setCumulProfitLoss(cumulProfitLoss: BigDecimal?): Statistics {
-        this.cumulProfitLoss = cumulProfitLoss
-        return this
-    }
+    var bigWinner: BigDecimal = BigDecimal.ZERO
+    var bigLoser: BigDecimal = BigDecimal.ZERO
+    var winnersProfit: BigDecimal = BigDecimal.ZERO
+    var losersLoss: BigDecimal = BigDecimal.ZERO
+    var timeValueBought: BigDecimal = BigDecimal.ZERO
+    var timeValueSold: BigDecimal = BigDecimal.ZERO
+    var timeValueSum: BigDecimal = BigDecimal.ZERO
+    var profitLoss: BigDecimal = BigDecimal.ZERO
+    var profitLossTaxReport: BigDecimal = BigDecimal.ZERO
+    var cumulProfitLoss: BigDecimal = BigDecimal.ZERO
 
     override fun toString(): String {
         return "Statistics{" +

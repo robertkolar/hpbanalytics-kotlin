@@ -151,11 +151,12 @@ open class AnalyticsService @Autowired constructor(private val executionReposito
     }
 
     private fun updateTradeStatistics() {
-        tradeStatistics
-                .setNumAllTrades(tradeRepository.count())
-                .setNumAllUnderlyings(tradeRepository.countAllUnderlyings())
-                .setNumOpenTrades(tradeRepository.countOpenTrades())
-                .setNumOpenUnderlyings(tradeRepository.countOpenUnderlyings())
+        tradeStatistics.apply {
+            numAllTrades = tradeRepository.count()
+            numAllUnderlyings = tradeRepository.countAllUnderlyings()
+            numOpenTrades = tradeRepository.countOpenTrades()
+            numOpenUnderlyings = tradeRepository.countOpenUnderlyings()
+        }
     }
 
     private fun generateTrades(executions: List<Execution>): List<Trade> {

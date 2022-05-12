@@ -1,21 +1,17 @@
-package com.highpowerbear.hpbanalytics.config;
+package com.highpowerbear.hpbanalytics.config
 
 /**
  * Created by robertk on 4/5/2020.
  */
-public class WsTopic {
-
-    private WsTopic() {
-    }
-
+object WsTopic {
     // topics
-    public static final String EXECUTION = "execution";
-    public static final String TRADE = "trade";
-    public static final String STATISTICS = "statistics";
-    public static final String CURRENT_STATISTICS = "current-statistics";
+    const val EXECUTION = "execution"
+    const val TRADE = "trade"
+    const val STATISTICS = "statistics"
+    const val CURRENT_STATISTICS = "current-statistics"
 
     // settings
-    public static final String TOPIC_PREFIX = "/topic";
-    public static final String APPLICATION_PREFIX = "/app";
-    public static final String STOMP_ENDPOINT = "/websocket";
+    const val TOPIC_PREFIX = "/topic"
+    const val APPLICATION_PREFIX = "/app"
+    const val STOMP_ENDPOINT = "/websocket"
 }

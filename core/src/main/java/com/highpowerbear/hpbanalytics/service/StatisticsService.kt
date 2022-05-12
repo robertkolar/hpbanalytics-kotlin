@@ -114,8 +114,8 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         while (!periodDate.isAfter(lastPeriodDate)) {
             val statistics = calculatePeriod(trades, interval, periodDate)
             cumulProfitLoss = cumulProfitLoss.add(statistics.profitLoss)
-            statistics
-                    .setId(statsCount++).cumulProfitLoss = cumulProfitLoss
+            statistics.id = statsCount++
+            statistics.cumulProfitLoss = cumulProfitLoss
             statisticsList.add(statistics)
             periodDate = periodDate.plus(1, interval)
         }
@@ -124,10 +124,11 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
 
     private fun calculateCurrent(trades: List<Trade>, interval: ChronoUnit): Statistics {
         val statistics = calculatePeriod(trades, interval, helper.toBeginOfPeriod(LocalDateTime.now(), interval))
-        val id = if (interval == ChronoUnit.DAYS) 1 else if (interval == ChronoUnit.MONTHS) 2 else 3
-        return statistics
-                .setId(id)
-                .setCumulProfitLoss(statistics.profitLoss)
+        val statisticsId = if (interval == ChronoUnit.DAYS) 1 else if (interval == ChronoUnit.MONTHS) 2 else 3
+        return statistics.apply {
+            id = statisticsId
+            cumulProfitLoss = statistics.profitLoss
+        }
     }
 
     private fun calculatePeriod(trades: List<Trade>?, interval: ChronoUnit, periodDate: LocalDateTime): Statistics {
@@ -170,23 +171,24 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         val timeValueBought = helper.timeValueSum(executionsForPeriod, Types.Action.BUY)
         val timeValueSold = helper.timeValueSum(executionsForPeriod, Types.Action.SELL)
         val timeValueSum = timeValueBought.add(timeValueSold)
-        return Statistics()
-                .setPeriodDate(periodDate)
-                .setNumExecs(executionsForPeriod.size)
-                .setNumOpened(tradesOpenedForPeriod.size)
-                .setNumClosed(tradesClosedForPeriod.size)
-                .setNumWinners(numWinners)
-                .setNumLosers(numLosers)
-                .setPctWinners(HanUtil.round2(pctWinners))
-                .setBigWinner(bigWinner)
-                .setBigLoser(bigLoser.negate())
-                .setWinnersProfit(winnersProfit)
-                .setLosersLoss(losersLoss)
-                .setTimeValueBought(timeValueBought)
-                .setTimeValueSold(timeValueSold)
-                .setTimeValueSum(timeValueSum)
-                .setProfitLoss(profitLoss)
-                .setProfitLossTaxReport(profitLossTaxReport)
+        return Statistics().apply {
+            this.periodDate = periodDate
+            this.numExecs = executionsForPeriod.size
+            this.numOpened = tradesOpenedForPeriod.size
+            this.numClosed = tradesClosedForPeriod.size
+            this.numWinners = numWinners
+            this.numLosers = numLosers
+            this.pctWinners = HanUtil.round2(pctWinners)
+            this.bigWinner = bigWinner
+            this.bigLoser = bigLoser.negate()
+            this.winnersProfit = winnersProfit
+            this.losersLoss = losersLoss
+            this.timeValueBought = timeValueBought
+            this.timeValueSold = timeValueSold
+            this.timeValueSum = timeValueSum
+            this.profitLoss = profitLoss
+            this.profitLossTaxReport = profitLossTaxReport
+        }
     }
 
     companion object {

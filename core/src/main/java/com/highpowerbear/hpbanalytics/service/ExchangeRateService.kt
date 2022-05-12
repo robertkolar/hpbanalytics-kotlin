@@ -66,8 +66,9 @@ class ExchangeRateService @Autowired constructor(
         }
         val exchangeRateDate = LocalDate.parse(timeNode.attributes.item(0).textContent)
         log.info("retrieved exchange rate for $exchangeRateDate")
-        var exchangeRate = ExchangeRate()
-            .setDate(exchangeRateDate.toString())
+        var exchangeRate = ExchangeRate().apply {
+            date = exchangeRateDate.toString()
+        }
         val rateNodes = timeNode.childNodes
         for (i in 0 until rateNodes.length) {
             val rateNode = rateNodes.item(i)
