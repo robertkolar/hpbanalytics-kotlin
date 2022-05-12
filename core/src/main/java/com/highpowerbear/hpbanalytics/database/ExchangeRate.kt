@@ -1,125 +1,86 @@
-package com.highpowerbear.hpbanalytics.database;
+package com.highpowerbear.hpbanalytics.database
 
-import com.highpowerbear.hpbanalytics.config.HanSettings;
-
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
-import java.io.Serializable;
-import java.util.Objects;
+import com.highpowerbear.hpbanalytics.config.HanSettings
+import java.io.Serializable
+import javax.persistence.Entity
+import javax.persistence.Id
+import javax.persistence.Table
 
 /**
  * Created by robertk on 5/29/2017.
  */
 @Entity
 @Table(name = "exchange_rate", schema = HanSettings.DB_SCHEMA, catalog = HanSettings.DB_DATABASE)
-public class ExchangeRate implements Serializable {
-    private static final long serialVersionUID = 539031756808205732L;
-
+class ExchangeRate : Serializable {
     @Id
-    private String date; // yyyy-MM-dd
-    private Double eurUsd;
-    private Double eurGbp;
-    private Double eurChf;
-    private Double eurAud;
-    private Double eurJpy;
-    private Double eurKrw;
-    private Double eurHkd;
-    private Double eurSgd;
+    var date // yyyy-MM-dd
+            : String = ""
+    var eurUsd: Double = 0.0
+    var eurGbp: Double = 0.0
+    var eurChf: Double = 0.0
+    var eurAud: Double = 0.0
+    var eurJpy: Double = 0.0
+    var eurKrw: Double = 0.0
+    var eurHkd: Double = 0.0
+    var eurSgd: Double = 0.0
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ExchangeRate that = (ExchangeRate) o;
-
-        return Objects.equals(date, that.date);
+    override fun equals(o: Any?): Boolean {
+        if (this === o) return true
+        if (o == null || javaClass != o.javaClass) return false
+        val that = o as ExchangeRate
+        return date == that.date
     }
 
-    @Override
-    public int hashCode() {
-        return date != null ? date.hashCode() : 0;
+    override fun hashCode(): Int {
+        return date.hashCode()
     }
 
-    public String getDate() {
-        return date;
+    fun setDate(date: String): ExchangeRate {
+        this.date = date
+        return this
     }
 
-    public ExchangeRate setDate(String date) {
-        this.date = date;
-        return this;
+    fun setEurUsd(eurUsd: Double): ExchangeRate {
+        this.eurUsd = eurUsd
+        return this
     }
 
-    public Double getEurUsd() {
-        return eurUsd;
+    fun setEurGbp(eurGbp: Double): ExchangeRate {
+        this.eurGbp = eurGbp
+        return this
     }
 
-    public ExchangeRate setEurUsd(Double eurUsd) {
-        this.eurUsd = eurUsd;
-        return this;
+    fun setEurChf(eurChf: Double): ExchangeRate {
+        this.eurChf = eurChf
+        return this
     }
 
-    public Double getEurGbp() {
-        return eurGbp;
+    fun setEurAud(eurAud: Double): ExchangeRate {
+        this.eurAud = eurAud
+        return this
     }
 
-    public ExchangeRate setEurGbp(Double eurGbp) {
-        this.eurGbp = eurGbp;
-        return this;
+    fun setEurJpy(eurJpy: Double): ExchangeRate {
+        this.eurJpy = eurJpy
+        return this
     }
 
-    public Double getEurChf() {
-        return eurChf;
+    fun setEurKrw(eurKrw: Double): ExchangeRate {
+        this.eurKrw = eurKrw
+        return this
     }
 
-    public ExchangeRate setEurChf(Double eurChf) {
-        this.eurChf = eurChf;
-        return this;
+    fun setEurHkd(eurHkd: Double): ExchangeRate {
+        this.eurHkd = eurHkd
+        return this
     }
 
-    public Double getEurAud() {
-        return eurAud;
+    fun setEurSgd(eurSgd: Double): ExchangeRate {
+        this.eurSgd = eurSgd
+        return this
     }
 
-    public ExchangeRate setEurAud(Double eurAud) {
-        this.eurAud = eurAud;
-        return this;
-    }
-
-    public Double getEurJpy() {
-        return eurJpy;
-    }
-
-    public ExchangeRate setEurJpy(Double eurJpy) {
-        this.eurJpy = eurJpy;
-        return this;
-    }
-
-    public Double getEurKrw() {
-        return eurKrw;
-    }
-
-    public ExchangeRate setEurKrw(Double eurKrw) {
-        this.eurKrw = eurKrw;
-        return this;
-    }
-
-    public Double getEurHkd() {
-        return eurHkd;
-    }
-
-    public ExchangeRate setEurHkd(Double eurHkd) {
-        this.eurHkd = eurHkd;
-        return this;
-    }
-
-    public Double getEurSgd() {
-        return eurSgd;
-    }
-
-    public ExchangeRate setEurSgd(Double eurSgd) {
-        this.eurSgd = eurSgd;
-        return this;
+    companion object {
+        private const val serialVersionUID = 539031756808205732L
     }
 }

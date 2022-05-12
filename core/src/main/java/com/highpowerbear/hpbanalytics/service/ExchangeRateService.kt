@@ -118,7 +118,7 @@ class ExchangeRateService @Autowired constructor(
 
     private fun putLastExchangeRate() {
         val list = exchangeRateRepository.findFirstByOrderByDateDesc()
-        if (!list.isEmpty()) {
+        if (list.isNotEmpty()) {
             val lastExchangeRate = list[0]
             exchangeRateMap[lastExchangeRate.date] = exchangeRateMapper.entityToDto(lastExchangeRate)
             log.info("last exchange rate found for " + lastExchangeRate.date)
@@ -129,7 +129,7 @@ class ExchangeRateService @Autowired constructor(
         val map = exchangeRateMap
         if (map[date] == null) {
             exchangeRateRepository.findById(date)
-                .ifPresent { entity: ExchangeRate? -> map[date] = exchangeRateMapper.entityToDto(entity) }
+                .ifPresent { entity: ExchangeRate -> map[date] = exchangeRateMapper.entityToDto(entity) }
         }
         return map[date]
     }
