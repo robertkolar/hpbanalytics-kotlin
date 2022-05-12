@@ -1,27 +1,21 @@
-package com.highpowerbear.hpbanalytics.enums;
+package com.highpowerbear.hpbanalytics.enums
 
 /**
  * Created by robertk on 11/18/2017.
  */
-public enum Currency {
-    EUR,
-    USD,
-    AUD,
-    GBP,
-    CHF,
-    JPY,
-    KRW,
-    HKD,
-    SGD;
+enum class Currency {
+    EUR, USD, AUD, GBP, CHF, JPY, KRW, HKD, SGD;
 
-    public static Currency findByValue(String value) {
-        Currency result = null;
-        for (Currency currency : values()) {
-            if (currency.name().equalsIgnoreCase(value)) {
-                result = currency;
-                break;
+    companion object {
+        fun findByValue(value: String?): Currency? {
+            var result: Currency? = null
+            for (currency in values()) {
+                if (currency.name.equals(value, ignoreCase = true)) {
+                    result = currency
+                    break
+                }
             }
+            return result
         }
-        return result;
     }
 }
