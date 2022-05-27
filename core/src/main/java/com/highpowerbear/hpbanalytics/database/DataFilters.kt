@@ -6,7 +6,6 @@ import com.highpowerbear.hpbanalytics.enums.TradeStatus
 import com.highpowerbear.hpbanalytics.enums.TradeType
 import com.highpowerbear.hpbanalytics.model.DataFilterItem
 import com.ib.client.Types.SecType
-import org.springframework.data.domain.Example
 import org.springframework.data.jpa.domain.Specification
 import java.text.MessageFormat
 import java.time.LocalDateTime
@@ -21,21 +20,6 @@ import javax.persistence.criteria.Root
  * Created by robertk on 4/19/2020.
  */
 object DataFilters {
-    fun tradeExample(
-        tradeType: TradeType?,
-        secType: SecType?,
-        currency: Currency?,
-        underlying: String?
-    ): Example<Trade> {
-        return Example.of(
-            Trade().apply {
-                type = tradeType
-                this.secType = secType
-                this.currency = currency
-                this.underlying = underlying
-            }
-        )
-    }
 
     fun executionSpecification(dataFilterItems: List<DataFilterItem>): Specification<Execution?> {
         return Specification { root: Root<Execution>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
@@ -62,7 +46,7 @@ object DataFilters {
         secType: SecType?,
         currency: Currency?,
         underlying: String?,
-        cutoffDate: LocalDateTime
+        cutoffDate: LocalDateTime?
     ): Specification<Trade?> {
         return Specification { root: Root<Trade?>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
             val predicates: MutableList<Predicate> = ArrayList()
@@ -78,13 +62,15 @@ object DataFilters {
             if (underlying != null) {
                 predicates.add(builder.equal(root.get<Any>("underlying"), underlying))
             }
-            predicates.add(
-                builder.or(
-                    builder.greaterThanOrEqualTo(root.get("openDate"), cutoffDate),
-                    builder.greaterThanOrEqualTo(root.get("closeDate"), cutoffDate),
-                    builder.isNull(root.get<Any>("closeDate"))
+            if (cutoffDate != null) {
+                predicates.add(
+                    builder.or(
+                        builder.greaterThanOrEqualTo(root.get("openDate"), cutoffDate),
+                        builder.greaterThanOrEqualTo(root.get("closeDate"), cutoffDate),
+                        builder.isNull(root.get<Any>("closeDate"))
+                    )
                 )
-            )
+            }
             builder.and(*predicates.toTypedArray())
         }
     }

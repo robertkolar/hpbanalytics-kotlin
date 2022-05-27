@@ -15,14 +15,14 @@ class ExchangeRate : Serializable {
     @Id
     var date // yyyy-MM-dd
             : String = ""
-    var eurUsd: Double = 0.0
-    var eurGbp: Double = 0.0
-    var eurChf: Double = 0.0
-    var eurAud: Double = 0.0
-    var eurJpy: Double = 0.0
-    var eurKrw: Double = 0.0
-    var eurHkd: Double = 0.0
-    var eurSgd: Double = 0.0
+    var eurUsd: Double? = null
+    var eurGbp: Double? = null
+    var eurChf: Double? = null
+    var eurAud: Double? = null
+    var eurJpy: Double? = null
+    var eurKrw: Double? = null
+    var eurHkd: Double? = null
+    var eurSgd: Double? = null
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

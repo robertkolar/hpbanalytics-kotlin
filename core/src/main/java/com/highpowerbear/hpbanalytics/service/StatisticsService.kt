@@ -50,7 +50,7 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
     }
 
     fun getCurrentStatistics(tradeType: String?, secType: String?, currency: String?, underlying: String?): List<Statistics> {
-        val currentStatisticsList = currentStatisticsMap[helper.statisticsKey(null, tradeType, secType, currency, underlying)]!!
+        val currentStatisticsList = currentStatisticsMap[helper.statisticsKey(null, tradeType, secType, currency, underlying)]
         return Objects.requireNonNullElse(currentStatisticsList, emptyList())
     }
 
@@ -58,12 +58,13 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         executorService.execute {
             // execute in a new thread
             log.info("BEGIN statistics calculation for interval=$interval, tradeType=$tradeType, secType=$secType, currency=$currency, undl=$underlying")
-            val tradeExample = DataFilters.tradeExample(
+            val tradeSpecification = DataFilters.tradeSpecification(
                     helper.normalizeEnumParam<TradeType>(tradeType),
                     helper.normalizeEnumParam<SecType>(secType),
                     helper.normalizeEnumParam<Currency>(currency),
-                    if (HanSettings.ALL == underlying) null else underlying)
-            val trades = tradeRepository.findAll(tradeExample, Sort.by(Sort.Direction.ASC, "openDate"))
+                    if (HanSettings.ALL == underlying) null else underlying,
+                    null)
+            val trades = tradeRepository.findAll(tradeSpecification, Sort.by(Sort.Direction.ASC, "openDate")).filterNotNull().toMutableList()
             log.info("found " + trades.size + " trades matching the filter criteria, calculating statistics...")
             val statisticsList = calculate(trades, interval)
             statisticsMap[helper.statisticsKey(interval, tradeType, secType, currency, underlying)] = statisticsList
@@ -94,11 +95,15 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
     }
 
     fun calculateCurrentStatisticsOnExecution(execution: Execution) {
-        val all = HanSettings.ALL
-        val secType = execution.secType.name
-        val undl = execution.underlying
-        Stream.of(all, secType).forEach { st: String -> Stream.of(all, undl).forEach { u: String? -> calculateCurrentStatistics(all, st, all, u, false) } }
-        messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS)
+        executorService.execute {
+            val all = HanSettings.ALL
+            val secType = execution.secType.name
+            val undl = execution.underlying
+            Stream.of(all, secType).forEach { st: String ->
+                Stream.of(all, undl).forEach { u: String? -> calculateCurrentStatistics(all, st, all, u, false) }
+            }
+            messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS)
+        }
     }
 
     private fun calculate(trades: MutableList<Trade>, interval: ChronoUnit): List<Statistics> {
