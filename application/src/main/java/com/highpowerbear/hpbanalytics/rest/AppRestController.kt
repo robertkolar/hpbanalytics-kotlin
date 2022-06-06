@@ -9,6 +9,7 @@ import com.highpowerbear.hpbanalytics.enums.TradeStatus
 import com.highpowerbear.hpbanalytics.enums.TradeType
 import com.highpowerbear.hpbanalytics.model.DataFilterItem
 import com.highpowerbear.hpbanalytics.model.Statistics
+import com.highpowerbear.hpbanalytics.model.TradeStatistics
 import com.highpowerbear.hpbanalytics.rest.model.CalculateStatisticsRequest
 import com.highpowerbear.hpbanalytics.rest.model.CloseTradeRequest
 import com.highpowerbear.hpbanalytics.rest.model.GenericList
@@ -21,7 +22,6 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import java.time.temporal.ChronoUnit
@@ -42,8 +42,8 @@ class AppRestController @Autowired constructor(
     private val applicationProperties: ApplicationProperties
 ) {
     private val objectMapper = ObjectMapper()
+
     @RequestMapping("execution")
-    @Throws(Exception::class)
     fun getFilteredExecutions(
         @RequestParam("page") page: Int,
         @RequestParam("limit") limit: Int,
@@ -84,7 +84,6 @@ class AppRestController @Autowired constructor(
     }
 
     @RequestMapping("trade")
-    @Throws(Exception::class)
     fun getFilteredTrades(
         @RequestParam("page") page: Int,
         @RequestParam("limit") limit: Int,
@@ -104,9 +103,10 @@ class AppRestController @Autowired constructor(
         return GenericList(trades, numTrades.toInt())
     }
 
-    @get:RequestMapping("trade/statistics")
-    val tradeStatistics: ResponseEntity<*>
-        get() = ResponseEntity.ok(analyticsService.tradeStatistics)
+    @RequestMapping("trade/statistics")
+    fun tradeStatistics(): TradeStatistics {
+        return analyticsService.tradeStatistics
+    }
 
     @RequestMapping(method = [RequestMethod.POST], value = ["trade/{tradeId}/close"])
     fun manualCloseTrade(
@@ -122,7 +122,7 @@ class AppRestController @Autowired constructor(
 
         val execution: Execution = Execution().apply {
             action = if (trade.type == TradeType.LONG) Types.Action.SELL else Types.Action.BUY
-            quantity = abs(trade.openPosition)
+            quantity = abs(trade.openPosition!!)
             symbol = trade.symbol
             underlying = trade.underlying
             currency = trade.currency!!
@@ -175,8 +175,8 @@ class AppRestController @Autowired constructor(
             underlyings = tradeRepository.findOpenUnderlyings()
             underlyingsExtended.addAll(underlyings)
             applicationProperties.underlyingsPermanent
-                .filter { up: String -> !underlyings.contains(up) }
-                .forEach { e: String -> underlyingsExtended.add(e) }
+                .filter { up -> !underlyings.contains(up) }
+                .forEach { up -> underlyingsExtended.add(up) }
         } else {
             underlyings = tradeRepository.findAllUnderlyings()
         }
@@ -205,9 +205,10 @@ class AppRestController @Autowired constructor(
         return GenericList(statistics, statistics.size)
     }
 
-    @get:RequestMapping("statistics/ifi/years")
-    val ifiYears: List<Int>?
-        get() = taxReportService.ifiYears
+    @RequestMapping("statistics/ifi/years")
+    fun ifiYears(): IntRange {
+        return taxReportService.ifiYears
+    }
 
     @RequestMapping("statistics/ifi/csv")
     fun getIfiCsv(
@@ -219,10 +220,9 @@ class AppRestController @Autowired constructor(
     }
 
     private fun <T> page(items: List<T>, start: Int, limit: Int, total: Int): List<T> {
-        val itemsPaged: List<T>
-        itemsPaged = if (!items.isEmpty()) {
-            val fromIndex = Math.min(start, total - 1)
-            val toIndex = Math.min(fromIndex + limit, total)
+        val itemsPaged: List<T> = if (items.isNotEmpty()) {
+            val fromIndex = start.coerceAtMost(total - 1)
+            val toIndex = (fromIndex + limit).coerceAtMost(total)
             items.subList(fromIndex, toIndex)
         } else {
             emptyList()

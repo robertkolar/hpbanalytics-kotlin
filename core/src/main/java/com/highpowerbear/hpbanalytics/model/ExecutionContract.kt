@@ -13,19 +13,19 @@ class ExecutionContract private constructor(private val execution: Execution) {
     }
 
     fun symbol(): String {
-        return execution.symbol
+        return execution.symbol!!
     }
 
     fun currency(): Currency {
-        return execution.currency
+        return execution.currency!!
     }
 
     fun secType(): SecType {
-        return execution.secType
+        return execution.secType!!
     }
 
     fun multiplier(): Double {
-        return execution.multiplier
+        return execution.multiplier!!
     }
 
     override fun toString(): String {

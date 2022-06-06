@@ -14,6 +14,7 @@ import javax.transaction.Transactional
  * Created by robertk on 4/13/2020.
  */
 interface ExecutionRepository : JpaRepository<Execution?, Long?>, JpaSpecificationExecutor<Execution?> {
+
     fun findAllByOrderByFillDateAsc(): List<Execution>
     fun existsByFillDate(fillDate: LocalDateTime?): Boolean
 

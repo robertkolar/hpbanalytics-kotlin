@@ -19,8 +19,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.*
-import java.util.stream.Collectors
-import java.util.stream.IntStream
 
 /**
  * Created by robertk on 10/10/2016.
@@ -33,10 +31,10 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
     private val DL = ","
     private val acquireType = "A - nakup"
     private val secTypeMap: MutableMap<SecType, String> = EnumMap(SecType::class.java)
-    private val tradeTypeMap: MutableMap<TradeType, String> = EnumMap(com.highpowerbear.hpbanalytics.enums.TradeType::class.java)
+    private val tradeTypeMap: MutableMap<TradeType, String> = EnumMap(TradeType::class.java)
     private val dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy")
     private val nf = NumberFormat.getInstance(Locale.US)
-    var ifiYears: List<Int>? = null
+    var ifiYears: IntRange = HanSettings.IFI_START_YEAR..LocalDate.now().year
         private set
 
     init {
@@ -44,7 +42,6 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
     }
 
     private fun setup() {
-        ifiYears = IntStream.rangeClosed(HanSettings.IFI_START_YEAR, LocalDate.now().year).boxed().collect(Collectors.toList())
         secTypeMap[SecType.FUT] = "01 - terminska pogodba"
         secTypeMap[SecType.CFD] = "02 - pogodba na razliko"
         secTypeMap[SecType.OPT] = "03 - opcija"
@@ -81,7 +78,7 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
             var currentPos = 0.0
             for (execution in trade.executions) {
                 val action = execution.action
-                currentPos += if (action == Types.Action.BUY) execution.quantity else -execution.quantity
+                currentPos += if (action == Types.Action.BUY) execution.quantity!! else -execution.quantity!!
                 eCount++
                 if (TradeType.SHORT == tradeType && Types.Action.SELL == action) {
                     writeTradeShortExecutionSell(sb, execution, tCount, eCount)
@@ -156,7 +153,7 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
 
     private fun writeTradeShortExecutionSell(sb: StringBuilder, execution: Execution, tCount: Int, eCount: Int) {
         sb.append(tCount).append("_").append(eCount).append(DL).append(DL).append(DL).append(DL)
-                .append(execution.fillDate.format(dtf)).append(DL)
+                .append(execution.fillDate!!.format(dtf)).append(DL)
                 .append(execution.quantity).append(DL)
                 .append(if (execution.currency == Currency.USD) nf.format(fillValue(execution)) else "").append(DL)
                 .append(nf.format(fillValueBase(execution))).append(DL)
@@ -168,7 +165,7 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
         sb.append(tCount).append("_").append(eCount)
         sb.append(DL.repeat(7))
         sb.append(DL)
-                .append(execution.fillDate.format(dtf)).append(DL)
+                .append(execution.fillDate!!.format(dtf)).append(DL)
                 .append(acquireType).append(DL)
                 .append(execution.quantity).append(DL)
                 .append(if (execution.currency == Currency.USD) nf.format(fillValue(execution)) else "").append(DL)
@@ -185,7 +182,7 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
 
     private fun writeTradeLongExecutionBuy(sb: StringBuilder, execution: Execution, tCount: Int, eCount: Int) {
         sb.append(tCount).append("_").append(eCount).append(DL).append(DL).append(DL).append(DL)
-                .append(execution.fillDate.format(dtf)).append(DL)
+                .append(execution.fillDate!!.format(dtf)).append(DL)
                 .append(acquireType).append(DL)
                 .append(execution.quantity).append(DL)
                 .append(if (execution.currency == Currency.USD) nf.format(fillValue(execution)) else "").append(DL)
@@ -198,7 +195,7 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
         sb.append(tCount).append("_").append(eCount)
         sb.append(DL.repeat(8))
         sb.append(DL)
-                .append(execution.fillDate.format(dtf)).append(DL)
+                .append(execution.fillDate!!.format(dtf)).append(DL)
                 .append(execution.quantity).append(DL)
                 .append(if (execution.currency == Currency.USD) nf.format(fillValue(execution)) else "").append(DL)
                 .append(nf.format(fillValueBase(execution))).append(DL)
@@ -214,17 +211,17 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
 
     private fun fillValue(execution: Execution): Double {
         val contractFillPrice = execution.fillPrice
-        val multiplier = BigDecimal.valueOf(execution.multiplier)
-        return contractFillPrice.multiply(multiplier).toDouble()
+        val multiplier = BigDecimal.valueOf(execution.multiplier!!)
+        return contractFillPrice!!.multiply(multiplier).toDouble()
     }
 
     private fun fillValueBase(execution: Execution): Double {
-        val date = execution.fillDate.toLocalDate()
+        val date = execution.fillDate!!.toLocalDate()
         val currency = execution.currency
-        val exchangeRate = exchangeRateService.getExchangeRate(date, currency)
+        val exchangeRate = exchangeRateService.getExchangeRate(date, currency!!)
         val contractFillPrice = execution.fillPrice
-        val multiplier = BigDecimal.valueOf(execution.multiplier)
-        return contractFillPrice.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP).multiply(multiplier).toDouble()
+        val multiplier = BigDecimal.valueOf(execution.multiplier!!)
+        return contractFillPrice!!.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP).multiply(multiplier).toDouble()
     }
 
     companion object {

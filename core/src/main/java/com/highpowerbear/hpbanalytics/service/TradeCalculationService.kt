@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.util.*
 
 /**
  * Created by robertk on 12/25/2017.
@@ -22,11 +21,11 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
         val lastExecution = trade.executions[trade.executions.size - 1]
         trade.apply {
             type = if (firstExecution.action == Types.Action.BUY) TradeType.LONG else TradeType.SHORT
-            symbol = firstExecution.symbol
+            symbol = firstExecution.symbol!!
             underlying = firstExecution.underlying
             currency = firstExecution.currency
             secType = firstExecution.secType
-            multiplier = firstExecution.multiplier
+            multiplier = firstExecution.multiplier!!
         }
         val tradeType = trade.type
         var cumulativeOpenPrice = BigDecimal.ZERO
@@ -37,7 +36,7 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
             val action = execution.action
             val quantity = execution.quantity
             val fillPrice = execution.fillPrice
-            openPosition += if (action == Types.Action.BUY) quantity else -quantity
+            openPosition += if (action == Types.Action.BUY) quantity!! else -quantity!!
             if (tradeType == TradeType.LONG && action == Types.Action.BUY || tradeType == TradeType.SHORT && action == Types.Action.SELL) {
                 cumulativeQuantity += quantity
                 cumulativeOpenPrice = cumulativeOpenPrice.add(BigDecimal.valueOf(quantity).multiply(fillPrice))
@@ -58,13 +57,12 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
             trade.avgClosePrice = avgClosePrice
             trade.closeDate = lastExecution.fillDate
             val cumulativePriceDiff = if (TradeType.LONG == tradeType) cumulativeClosePrice.subtract(cumulativeOpenPrice) else cumulativeOpenPrice.subtract(cumulativeClosePrice)
-            val profitLoss = cumulativePriceDiff.multiply(BigDecimal.valueOf(trade.multiplier))
+            val profitLoss = cumulativePriceDiff.multiply(BigDecimal.valueOf(trade.multiplier!!))
             trade.profitLoss = profitLoss
         }
-        val timeValueSum = trade.executions.stream()
-                .map { obj: Execution -> obj.timeValue }
-                .filter { obj: BigDecimal? -> Objects.nonNull(obj) }
-                .reduce(BigDecimal.ZERO) { obj: BigDecimal, augend: BigDecimal? -> obj.add(augend) }
+        val timeValueSum = trade.executions
+                .map { e: Execution -> e.timeValue }
+                .fold(BigDecimal.ZERO) { acc, next -> acc.add(next) }
         trade.timeValueSum = timeValueSum
     }
 
@@ -76,14 +74,14 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
         for (execution in trade.executions) {
             val action = execution.action
             val quantity = execution.quantity
-            val date = execution.fillDate.toLocalDate()
+            val date = execution.fillDate!!.toLocalDate()
             val currency = execution.currency
-            val exchangeRate = exchangeRateService.getExchangeRate(date, currency)
-            val fillPriceBase = execution.fillPrice.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP)
+            val exchangeRate = exchangeRateService.getExchangeRate(date, currency!!)
+            val fillPriceBase = execution.fillPrice!!.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP)
             if (tradeType == TradeType.LONG && action == Types.Action.BUY || tradeType == TradeType.SHORT && action == Types.Action.SELL) {
-                cumulativeOpenPrice = cumulativeOpenPrice.add(BigDecimal.valueOf(quantity).multiply(fillPriceBase))
+                cumulativeOpenPrice = cumulativeOpenPrice.add(BigDecimal.valueOf(quantity!!).multiply(fillPriceBase))
             } else if (tradeType == TradeType.LONG && action == Types.Action.SELL || tradeType == TradeType.SHORT && action == Types.Action.BUY) {
-                cumulativeClosePrice = cumulativeClosePrice.add(BigDecimal.valueOf(quantity).multiply(fillPriceBase))
+                cumulativeClosePrice = cumulativeClosePrice.add(BigDecimal.valueOf(quantity!!).multiply(fillPriceBase))
             }
         }
         val cumulativeDiff: BigDecimal = if (TradeType.LONG == tradeType) {
@@ -91,7 +89,7 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
         } else {
             cumulativeOpenPrice.subtract(cumulativeClosePrice)
         }
-        return cumulativeDiff.multiply(BigDecimal.valueOf(trade.multiplier))
+        return cumulativeDiff.multiply(BigDecimal.valueOf(trade.multiplier!!))
     }
 
     fun calculatePlPortfolioBaseCloseOnly(trade: Trade): BigDecimal {

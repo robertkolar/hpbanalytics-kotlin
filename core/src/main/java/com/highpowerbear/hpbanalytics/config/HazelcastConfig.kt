@@ -15,6 +15,7 @@ import java.util.concurrent.BlockingQueue
  */
 @Configuration
 open class HazelcastConfig {
+
     @Bean("hanHazelcastInstance")
     open fun hazelcastInstance(): HazelcastInstance {
         val config = Config(HanSettings.HAZELCAST_INSTANCE_NAME)

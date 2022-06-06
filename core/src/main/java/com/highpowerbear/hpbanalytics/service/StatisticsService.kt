@@ -22,7 +22,6 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
 import java.util.concurrent.ScheduledExecutorService
-import java.util.stream.Stream
 
 /**
  * Created by robertk on 4/26/2015.
@@ -97,10 +96,10 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
     fun calculateCurrentStatisticsOnExecution(execution: Execution) {
         executorService.execute {
             val all = HanSettings.ALL
-            val secType = execution.secType.name
+            val secType = execution.secType!!.name
             val undl = execution.underlying
-            Stream.of(all, secType).forEach { st: String ->
-                Stream.of(all, undl).forEach { u: String? -> calculateCurrentStatistics(all, st, all, u, false) }
+            listOf(all, secType).forEach { st: String ->
+                listOf(all, undl).forEach { u: String? -> calculateCurrentStatistics(all, st, all, u, false) }
             }
             messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS)
         }

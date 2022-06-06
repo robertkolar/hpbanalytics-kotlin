@@ -29,7 +29,7 @@ class Trade : Serializable {
 
     @Enumerated(EnumType.STRING)
     var type: TradeType? = null
-    var symbol: String = ""
+    var symbol: String? = null
     var underlying: String? = null
 
     @Enumerated(EnumType.STRING)
@@ -37,14 +37,14 @@ class Trade : Serializable {
 
     @Enumerated(EnumType.STRING)
     var secType: Types.SecType? = null
-    var multiplier: Double = 1.0
+    var multiplier: Double? = null
     var cumulativeQuantity: Double? = null
 
     @Enumerated(EnumType.STRING)
     var status: TradeStatus? = null
-    var openPosition: Double = 0.0
+    var openPosition: Double? = null
     var avgOpenPrice: BigDecimal? = null
-    var openDate: LocalDateTime = LocalDateTime.MIN
+    var openDate: LocalDateTime? = null
     var avgClosePrice: BigDecimal? = null
     var closeDate: LocalDateTime? = null
     var profitLoss: BigDecimal? = null

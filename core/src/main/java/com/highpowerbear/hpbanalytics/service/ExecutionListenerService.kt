@@ -39,7 +39,7 @@ class ExecutionListenerService @Autowired constructor(private val executionMappe
             try {
                 val dto = executionQueue.take()
                 val execution = executionMapper.dtoToEntity(dto)
-                execution.symbol = HanUtil.removeWhiteSpaces(execution.symbol)
+                execution.symbol = HanUtil.removeWhiteSpaces(execution.symbol!!)
                 log.info("consumed execution from the hazelcast queue $execution")
                 analyticsService.addExecution(execution)
                 statisticsService.calculateCurrentStatisticsOnExecution(execution)

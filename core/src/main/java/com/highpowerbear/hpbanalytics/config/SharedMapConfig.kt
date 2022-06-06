@@ -12,7 +12,8 @@ import org.springframework.context.annotation.Configuration
  * Created by robertk on 2/3/2022.
  */
 @Configuration
-open class SharedMapConfig @Autowired constructor(@param:Qualifier("hanHazelcastInstance") private val hazelcastInstance: HazelcastInstance) {
+open class SharedMapConfig @Autowired constructor(@Qualifier("hanHazelcastInstance") private val hazelcastInstance: HazelcastInstance) {
+
     @Bean
     open fun exchangeRateMap(): Map<String, ExchangeRateDTO> {
         return hazelcastInstance.getMap(HanSettings.HAZELCAST_EXCHANGE_RATE_MAP)

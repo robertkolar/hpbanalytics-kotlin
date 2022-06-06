@@ -12,6 +12,7 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry
 @Configuration
 @EnableWebSocketMessageBroker
 open class WebsocketConfig : WebSocketMessageBrokerConfigurer {
+
     override fun configureMessageBroker(config: MessageBrokerRegistry) {
         config.enableSimpleBroker(WsTopic.TOPIC_PREFIX)
         config.setApplicationDestinationPrefixes(WsTopic.APPLICATION_PREFIX)

@@ -30,42 +30,44 @@ class Execution : Serializable {
 
     @Enumerated(EnumType.STRING)
     var action: Types.Action? = null
-    var quantity: Double = 0.0
-    var symbol: String = ""
+    var quantity: Double? = null
+    var symbol: String? = null
     var underlying: String? = null
 
     @Enumerated(EnumType.STRING)
-    var currency: Currency = Currency.EUR
+    var currency: Currency? = null
 
     @Enumerated(EnumType.STRING)
-    var secType: SecType = SecType.FOP
-    var multiplier: Double = 1.0
-    var fillDate: LocalDateTime = LocalDateTime.now()
-    var fillPrice: BigDecimal = BigDecimal.ZERO
+    var secType: SecType? = null
+    var multiplier: Double? = null
+    var fillDate: LocalDateTime? = null
+    var fillPrice: BigDecimal? = null
     var inTheMoney: BigDecimal? = null
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     var trade: Trade? = null
+
     val value: BigDecimal
         get() {
-            var value = fillPrice
-                .multiply(BigDecimal.valueOf(multiplier))
-                .multiply(BigDecimal.valueOf(quantity))
+            var value = fillPrice!!
+                .multiply(BigDecimal.valueOf(multiplier!!))
+                .multiply(BigDecimal.valueOf(quantity!!))
             if (action == Types.Action.SELL) {
                 value = value.negate()
             }
             return value
         }
+
     val timeValue: BigDecimal
         get() {
             if (inTheMoney == null) {
                 return BigDecimal.ZERO
             }
-            var timeValue = fillPrice
+            var timeValue = fillPrice!!
                 .subtract(inTheMoney)
-                .multiply(BigDecimal.valueOf(multiplier))
-                .multiply(BigDecimal.valueOf(quantity))
+                .multiply(BigDecimal.valueOf(multiplier!!))
+                .multiply(BigDecimal.valueOf(quantity!!))
             if (action == Types.Action.SELL) {
                 timeValue = timeValue.negate()
             }

@@ -13,11 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
-import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.function.Consumer
-import java.util.stream.Collectors
-import java.util.stream.Stream
 
 /**
  *
@@ -88,10 +85,9 @@ open class AnalyticsService @Autowired constructor(private val executionReposito
         }
         val firstTradeAffected = tradesAffected[0]
         val firstExecution = firstTradeAffected.executions[0]
-        val cutoffDate = Stream.of(firstExecution, executionMod)
-                .map { obj: Execution -> obj.fillDate }
-                .min { obj: LocalDateTime, other: LocalDateTime? -> obj.compareTo(other) }
-                .get()
+        val cutoffDate = listOf(firstExecution, executionMod)
+                .map { it.fillDate }
+                .minByOrNull { it!! }
         val executionsToAnalyzeAgain = executionRepository
                 .findExecutionsToAnalyzeAgain(ec.symbol(), ec.currency(), ec.secType(), ec.multiplier(), cutoffDate)
         val regeneratedTrades = generateTradesSingleContract(executionsToAnalyzeAgain)
@@ -121,7 +117,7 @@ open class AnalyticsService @Autowired constructor(private val executionReposito
     }
 
     private fun adjustFillDate(execution: Execution) {
-        var fillDate = execution.fillDate
+        var fillDate = execution.fillDate!!
         while (executionRepository.existsByFillDate(fillDate)) {
             fillDate = fillDate.plus(1, ChronoUnit.MICROS)
         }
@@ -161,7 +157,7 @@ open class AnalyticsService @Autowired constructor(private val executionReposito
 
     private fun generateTrades(executions: List<Execution>): List<Trade> {
         val trades: MutableList<Trade> = ArrayList()
-        val cids = executions.stream().map { e: Execution -> ExecutionContract.cid(e) }.collect(Collectors.toSet())
+        val cids = executions.map { e -> ExecutionContract.cid(e) }.toSet()
         val executionsPerCidMap: MutableMap<String, MutableList<Execution>> = HashMap() // contract identifier -> list of executions
         cids.forEach(Consumer { cid: String -> executionsPerCidMap[cid] = ArrayList() })
         for (execution in executions) {
@@ -187,7 +183,7 @@ open class AnalyticsService @Autowired constructor(private val executionReposito
                 trade.executions.add(execution)
                 execution.trade = trade
                 val oldPos = currentPos
-                currentPos += if (execution.action == Types.Action.BUY) execution.quantity else -execution.quantity
+                currentPos += if (execution.action == Types.Action.BUY) execution.quantity!! else -execution.quantity!!
                 log.info("associated $execution, currentPos=$currentPos")
                 check(!detectReversal(oldPos, currentPos)) { "execution resulting in reversal trade not permitted $execution" }
                 if (currentPos == 0.0) {

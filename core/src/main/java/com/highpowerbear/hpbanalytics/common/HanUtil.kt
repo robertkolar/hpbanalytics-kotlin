@@ -10,6 +10,7 @@ import com.ib.client.Types.SecType
  */
 object HanUtil {
     private val exchangeRateDateFormatter = DateTimeFormatter.ofPattern(HanSettings.EXCHANGE_RATE_DATE_FORMAT)
+
     fun toDurationString(durationSeconds: Long): String {
         val days = durationSeconds / (24 * 60 * 60)
         val daysRemainder = durationSeconds % (24 * 60 * 60)

@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param
  * Created by robertk on 4/13/2020.
  */
 interface TradeRepository : JpaRepository<Trade?, Long?>, JpaSpecificationExecutor<Trade?> {
+
     fun findByTypeAndCloseDateBetweenOrderByOpenDateAsc(
         type: TradeType?,
         closeDateBegin: LocalDateTime?,

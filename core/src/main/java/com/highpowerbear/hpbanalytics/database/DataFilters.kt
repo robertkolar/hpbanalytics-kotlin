@@ -22,7 +22,7 @@ import javax.persistence.criteria.Root
 object DataFilters {
 
     fun executionSpecification(dataFilterItems: List<DataFilterItem>): Specification<Execution?> {
-        return Specification { root: Root<Execution>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
+        return Specification { root: Root<Execution>, _: CriteriaQuery<*>?, builder: CriteriaBuilder ->
             build(
                 root,
                 builder,
@@ -32,7 +32,7 @@ object DataFilters {
     }
 
     fun tradeSpecification(dataFilterItems: List<DataFilterItem>): Specification<Trade?> {
-        return Specification { root: Root<Trade>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
+        return Specification { root: Root<Trade>, _: CriteriaQuery<*>?, builder: CriteriaBuilder ->
             build(
                 root,
                 builder,
@@ -41,14 +41,8 @@ object DataFilters {
         }
     }
 
-    fun tradeSpecification(
-        tradeType: TradeType?,
-        secType: SecType?,
-        currency: Currency?,
-        underlying: String?,
-        cutoffDate: LocalDateTime?
-    ): Specification<Trade?> {
-        return Specification { root: Root<Trade?>, query: CriteriaQuery<*>?, builder: CriteriaBuilder ->
+    fun tradeSpecification(tradeType: TradeType?, secType: SecType?, currency: Currency?, underlying: String?, cutoffDate: LocalDateTime?): Specification<Trade?> {
+        return Specification { root: Root<Trade?>, _: CriteriaQuery<*>?, builder: CriteriaBuilder ->
             val predicates: MutableList<Predicate> = ArrayList()
             if (tradeType != null) {
                 predicates.add(builder.equal(root.get<Any>("type"), tradeType))
@@ -78,6 +72,7 @@ object DataFilters {
     private fun <R> build(root: Root<R>, builder: CriteriaBuilder, dataFilterItems: List<DataFilterItem>): Predicate {
         val outerAndPredicates = mutableListOf<Predicate>()
         val innerOrPredicates = mutableListOf<Predicate>()
+
         for (item in dataFilterItems) {
             val operator = DataFilterOperator.valueOf(item.operator!!.uppercase(Locale.getDefault()))
             val field = item.property
@@ -134,7 +129,7 @@ object DataFilters {
                 }
             }
         }
-        if (!innerOrPredicates.isEmpty()) {
+        if (innerOrPredicates.isNotEmpty()) {
             outerAndPredicates.add(builder.or(*innerOrPredicates.toTypedArray()))
         }
         return builder.and(*outerAndPredicates.toTypedArray())

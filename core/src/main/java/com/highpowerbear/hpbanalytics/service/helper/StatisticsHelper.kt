@@ -13,7 +13,6 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import java.util.stream.Collectors
 
 /**
  * Created by robertk on 1/18/2022.
@@ -40,36 +39,35 @@ class StatisticsHelper @Autowired constructor(private val exchangeRateService: E
     }
 
     fun timeValueSum(executions: List<Execution>, action: Types.Action): BigDecimal {
-        return executions.stream()
-            .filter { e: Execution -> e.action == action }
-            .map { e: Execution -> valueBase(e.timeValue, e.fillDate.toLocalDate(), e.currency) }
-            .reduce(BigDecimal.ZERO) { obj: BigDecimal, augend: BigDecimal? -> obj.add(augend) }
+        return executions
+            .filter { e -> e.action == action }
+            .map { e -> valueBase(e.timeValue, e.fillDate!!.toLocalDate(), e.currency) }
+            .fold(BigDecimal.ZERO) { acc, next -> acc.add(next) }
     }
 
-    fun valueBase(value: BigDecimal, date: LocalDate?, currency: Currency?): BigDecimal {
+    private fun valueBase(value: BigDecimal, date: LocalDate?, currency: Currency?): BigDecimal {
         val exchangeRate = exchangeRateService.getExchangeRate(date!!, currency!!)
         return value.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP)
     }
 
     fun firstDate(trades: List<Trade>): LocalDateTime {
-        return trades.stream()
-            .flatMap { t: Trade -> t.executions.stream() }
-            .map { obj: Execution -> obj.fillDate }
-            .min { obj: LocalDateTime?, other: LocalDateTime? -> obj!!.compareTo(other) }
-            .orElse(LocalDateTime.MIN)
+        return trades
+            .flatMap { t: Trade -> t.executions }
+            .map { e: Execution -> e.fillDate }
+            .minByOrNull { it!! } ?: LocalDateTime.MIN
     }
 
     fun lastDate(trades: List<Trade>): LocalDateTime {
         return trades
             .flatMap { t: Trade -> t.executions }
-            .maxByOrNull { e: Execution -> e.fillDate }
-            ?.fillDate ?: LocalDateTime.MIN
+            .map { e: Execution -> e.fillDate }
+            .maxByOrNull { it!! } ?: LocalDateTime.MIN
 
     }
 
     fun getTradesOpenedForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Trade> {
         return trades
-            .filter { t: Trade -> toBeginOfPeriod(t.openDate, interval).isEqual(periodDate) }
+            .filter { t: Trade -> toBeginOfPeriod(t.openDate!!, interval).isEqual(periodDate) }
     }
 
     fun getTradesClosedForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Trade> {
@@ -79,11 +77,10 @@ class StatisticsHelper @Autowired constructor(private val exchangeRateService: E
     }
 
     fun getExecutionsForPeriod(trades: List<Trade>, periodDate: LocalDateTime?, interval: ChronoUnit): List<Execution> {
-        return trades.stream()
-            .flatMap { t: Trade -> t.executions.stream() }
-            .filter { e: Execution -> toBeginOfPeriod(e.fillDate, interval).isEqual(periodDate) }
+        return trades
+            .flatMap { it.executions }
+            .filter { e: Execution -> toBeginOfPeriod(e.fillDate!!, interval).isEqual(periodDate) }
             .distinct()
-            .collect(Collectors.toList())
     }
 
     fun toBeginOfPeriod(localDateTime: LocalDateTime, interval: ChronoUnit): LocalDateTime {

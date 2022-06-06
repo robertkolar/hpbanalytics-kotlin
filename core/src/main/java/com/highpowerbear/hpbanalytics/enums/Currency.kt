@@ -7,7 +7,7 @@ enum class Currency {
     EUR, USD, AUD, GBP, CHF, JPY, KRW, HKD, SGD;
 
     companion object {
-        fun findByValue(value: String?): Currency? {
+        fun findByValue(value: String): Currency? {
             var result: Currency? = null
             for (currency in values()) {
                 if (currency.name.equals(value, ignoreCase = true)) {
