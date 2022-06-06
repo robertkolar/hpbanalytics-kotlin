@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration
  */
 @Configuration
 open class ExecutorConfig {
+
     @Bean
     open fun scheduledExecutorService(): ScheduledExecutorService {
         return Executors.newScheduledThreadPool(HanSettings.SCHEDULED_THREAD_POOL_SIZE)

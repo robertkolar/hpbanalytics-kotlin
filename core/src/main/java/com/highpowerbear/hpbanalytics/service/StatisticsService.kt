@@ -34,6 +34,7 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
                                                private val executorService: ScheduledExecutorService,
                                                private val statisticsMap: MutableMap<String, List<Statistics>>,
                                                private val currentStatisticsMap: MutableMap<String, List<Statistics>>) {
+
     fun getStatistics(interval: ChronoUnit?, tradeType: String?, secType: String?, currency: String?, underlying: String?, maxPoints: Int?): MutableList<Statistics> {
         val maxPointsMod: Int
         val statisticsList = statisticsMap[helper.statisticsKey(interval, tradeType, secType, currency, underlying)]

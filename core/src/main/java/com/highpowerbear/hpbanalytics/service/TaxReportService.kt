@@ -34,8 +34,7 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
     private val tradeTypeMap: MutableMap<TradeType, String> = EnumMap(TradeType::class.java)
     private val dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy")
     private val nf = NumberFormat.getInstance(Locale.US)
-    var ifiYears: IntRange = HanSettings.IFI_START_YEAR..LocalDate.now().year
-        private set
+    val ifiYears: IntRange = HanSettings.IFI_START_YEAR..LocalDate.now().year
 
     init {
         setup()

@@ -16,22 +16,24 @@ import java.math.RoundingMode
  */
 @Service
 class TradeCalculationService @Autowired constructor(private val exchangeRateService: ExchangeRateService) {
+
     fun calculateFields(trade: Trade) {
         val firstExecution = trade.executions[0]
         val lastExecution = trade.executions[trade.executions.size - 1]
         trade.apply {
             type = if (firstExecution.action == Types.Action.BUY) TradeType.LONG else TradeType.SHORT
-            symbol = firstExecution.symbol!!
+            symbol = firstExecution.symbol
             underlying = firstExecution.underlying
             currency = firstExecution.currency
             secType = firstExecution.secType
-            multiplier = firstExecution.multiplier!!
+            multiplier = firstExecution.multiplier
         }
         val tradeType = trade.type
         var cumulativeOpenPrice = BigDecimal.ZERO
         var cumulativeClosePrice = BigDecimal.ZERO
         var openPosition = 0.0
         var cumulativeQuantity = 0.0
+
         for (execution in trade.executions) {
             val action = execution.action
             val quantity = execution.quantity
@@ -45,6 +47,7 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
             }
         }
         val avgOpenPrice = cumulativeOpenPrice.divide(BigDecimal.valueOf(cumulativeQuantity), RoundingMode.HALF_UP)
+
         trade.apply {
             this.openPosition = openPosition
             status = if (openPosition != 0.0) TradeStatus.OPEN else TradeStatus.CLOSED
@@ -52,6 +55,7 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
             openDate = firstExecution.fillDate
             this.avgOpenPrice = avgOpenPrice
         }
+
         if (trade.status == TradeStatus.CLOSED) {
             val avgClosePrice = cumulativeClosePrice.divide(BigDecimal.valueOf(cumulativeQuantity), RoundingMode.HALF_UP)
             trade.avgClosePrice = avgClosePrice
@@ -60,6 +64,7 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
             val profitLoss = cumulativePriceDiff.multiply(BigDecimal.valueOf(trade.multiplier!!))
             trade.profitLoss = profitLoss
         }
+
         val timeValueSum = trade.executions
                 .map { e: Execution -> e.timeValue }
                 .fold(BigDecimal.ZERO) { acc, next -> acc.add(next) }
@@ -71,6 +76,7 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
         val tradeType = trade.type
         var cumulativeOpenPrice = BigDecimal.ZERO
         var cumulativeClosePrice = BigDecimal.ZERO
+
         for (execution in trade.executions) {
             val action = execution.action
             val quantity = execution.quantity
@@ -95,6 +101,7 @@ class TradeCalculationService @Autowired constructor(private val exchangeRateSer
     fun calculatePlPortfolioBaseCloseOnly(trade: Trade): BigDecimal {
         require(TradeStatus.CLOSED == trade.status) { "cannot calculate pl, trade not closed $trade" }
         val exchangeRate = exchangeRateService.getExchangeRate(trade.closeDate!!.toLocalDate(), trade.currency!!)
+
         return trade.profitLoss!!.divide(exchangeRate, HanSettings.DECIMAL_SCALE, RoundingMode.HALF_UP)
     }
 }

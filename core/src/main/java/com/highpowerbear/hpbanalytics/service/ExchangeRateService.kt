@@ -52,8 +52,7 @@ class ExchangeRateService @Autowired constructor(
             log.error("unable to retrieve exchange rates")
             return
         }
-        val timeNode: Node
-        timeNode = try {
+        val timeNode: Node = try {
             val factory = DocumentBuilderFactory.newInstance()
             val builder = factory.newDocumentBuilder()
             val doc = builder.parse(InputSource(StringReader(content)))

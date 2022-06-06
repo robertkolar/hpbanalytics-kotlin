@@ -4,6 +4,8 @@ import java.time.format.DateTimeFormatter
 import com.highpowerbear.hpbanalytics.config.HanSettings
 import java.time.LocalDate
 import com.ib.client.Types.SecType
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /**
  * Created by robertk on 5/29/2017.
@@ -25,8 +27,8 @@ object HanUtil {
     }
 
     fun round(number: Double, decimalPlaces: Int): Double {
-        val modifier = Math.pow(10.0, decimalPlaces.toDouble())
-        return Math.round(number * modifier) / modifier
+        val modifier = 10.0.pow(decimalPlaces.toDouble())
+        return (number * modifier).roundToInt() / modifier
     }
 
     fun round2(number: Double): Double {
@@ -37,8 +39,8 @@ object HanUtil {
         return localDate.format(exchangeRateDateFormatter)
     }
 
-    fun removeWhiteSpaces(input: String): String {
-        return input.replace("\\s".toRegex(), "")
+    fun removeWhiteSpaces(input: String?): String {
+        return input!!.replace("\\s".toRegex(), "")
     }
 
     fun isDerivative(secType: SecType?): Boolean {

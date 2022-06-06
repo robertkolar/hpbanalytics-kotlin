@@ -121,12 +121,13 @@ class AppRestController @Autowired constructor(
         }
 
         val execution: Execution = Execution().apply {
+            reference = r.executionReference
             action = if (trade.type == TradeType.LONG) Types.Action.SELL else Types.Action.BUY
             quantity = abs(trade.openPosition!!)
             symbol = trade.symbol
             underlying = trade.underlying
-            currency = trade.currency!!
-            secType = trade.secType!!
+            currency = trade.currency
+            secType = trade.secType
             multiplier = trade.multiplier
             fillDate = r.closeDate
             fillPrice = r.closePrice
