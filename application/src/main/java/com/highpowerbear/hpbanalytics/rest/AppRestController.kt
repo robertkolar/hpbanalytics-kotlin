@@ -169,17 +169,15 @@ class AppRestController @Autowired constructor(
 
     @RequestMapping("statistics/underlyings")
     fun getUnderlyings(@RequestParam(required = false, value = "openOnly") openOnly: Boolean): List<String> {
-        val underlyings: List<String>
-        val underlyingsExtended: MutableList<String> = mutableListOf()
+        val underlyings: MutableList<String>
 
         if (openOnly) {
-            underlyings = tradeRepository.findOpenUnderlyings()
-            underlyingsExtended.addAll(underlyings)
+            underlyings = tradeRepository.findOpenUnderlyings().toMutableList()
             applicationProperties.underlyingsPermanent
                 .filter { up -> !underlyings.contains(up) }
-                .forEach { up -> underlyingsExtended.add(up) }
+                .forEach { up -> underlyings.add(up) }
         } else {
-            underlyings = tradeRepository.findAllUnderlyings()
+            underlyings = tradeRepository.findAllUnderlyings().toMutableList()
         }
         return underlyings
     }
