@@ -24,7 +24,6 @@
         <java.version>11</java.version>
         <spring-boot.version>2.6.6</spring-boot.version>
         <hazelcast.version>5.0.2</hazelcast.version>
-        <spring-fox.version>3.0.0</spring-fox.version>
         <kotlin.version>1.6.21</kotlin.version>
         <mapstruct.version>1.4.2.Final</mapstruct.version>
     </properties>

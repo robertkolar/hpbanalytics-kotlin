@@ -34,7 +34,7 @@ Ext.define('HanGui.view.trade.TradeGrid', {
         filter: 'string'
     }, {
         text: 'Symbol',
-        width: 160,
+        width: 165,
         dataIndex: 'symbol',
         filter: 'string'
     }, {

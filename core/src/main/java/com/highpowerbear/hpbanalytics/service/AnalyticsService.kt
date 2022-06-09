@@ -1,6 +1,6 @@
 package com.highpowerbear.hpbanalytics.service
 
-import com.highpowerbear.hpbanalytics.config.WsTopic
+import com.highpowerbear.hpbanalytics.config.WsEndpoint
 import com.highpowerbear.hpbanalytics.database.Execution
 import com.highpowerbear.hpbanalytics.database.ExecutionRepository
 import com.highpowerbear.hpbanalytics.database.Trade
@@ -142,8 +142,8 @@ open class AnalyticsService @Autowired constructor(private val executionReposito
             tradeRepository.saveAll(trades) // executions update handled by transaction
         }
         updateTradeStatistics()
-        messageService.sendWsReloadRequestMessage(WsTopic.EXECUTION)
-        messageService.sendWsReloadRequestMessage(WsTopic.TRADE)
+        messageService.sendWsReloadRequestMessage(WsEndpoint.EXECUTION)
+        messageService.sendWsReloadRequestMessage(WsEndpoint.TRADE)
     }
 
     private fun updateTradeStatistics() {

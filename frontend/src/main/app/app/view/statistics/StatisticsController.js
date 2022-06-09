@@ -34,41 +34,49 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
         me.prepareUnderlyingCombo();
         me.prepareIfiYearMonthCombos();
 
-        var socket  = new SockJS('/websocket');
-        var stompClient = Stomp.over(socket);
-        stompClient.debug = function(str) {
-        };
+        var socketCurStat  = new WebSocket(HanGui.common.Definitions.wsPrefix + '/current-statistics');
 
-        stompClient.connect({}, function(frame) {
-            console.log('WS statistics connected');
+        socketCurStat.onopen = function(event) {
+            console.log('WS current-statistics connected');
             cWsStatusField.update('WS connected');
             cWsStatusField.addCls('han-connected');
+        };
 
-            wsStatusField.update('WS connected');
-            wsStatusField.addCls('han-connected');
+        socketCurStat.onmessage = function(event) {
+            if (event.data.startsWith('reloadRequest')) {
+                me.reloadCurrentStatistics();
+            }
+        };
 
-            stompClient.subscribe('/topic/current-statistics', function(message) {
-                if (message.body.startsWith('reloadRequest')) {
-                    me.reloadCurrentStatistics();
-                }
-            });
-            stompClient.subscribe('/topic/statistics', function(message) {
-                if (message.body.startsWith('reloadRequest')) {
-                    me.reloadStatisticsAndCharts();
-                }
-            });
-
-        }, function() {
-            console.log('WS statistics disconnected');
+        socketCurStat.onclose = function(event) {
+            console.log('WS current-statistics disconnected');
 
             cWsStatusField.update('WS disconnected');
             cWsStatusField.removeCls('han-connected');
             cWsStatusField.addCls('han-disconnected');
+        };
+
+        var socketStat  = new WebSocket(HanGui.common.Definitions.wsPrefix + '/statistics');
+
+        socketStat.onopen = function(event) {
+            console.log('WS statistics connected');
+            wsStatusField.update('WS connected');
+            wsStatusField.addCls('han-connected');
+        };
+
+        socketStat.onmessage = function(event) {
+            if (event.data.startsWith('reloadRequest')) {
+                me.reloadStatisticsAndCharts();
+            }
+        };
+
+        socketStat.onclose = function(event) {
+            console.log('WS statistics disconnected');
 
             wsStatusField.update('WS disconnected');
             wsStatusField.removeCls('han-connected');
             wsStatusField.addCls('han-disconnected');
-        });
+        };
     },
 
     reloadCurrentStatistics: function() {

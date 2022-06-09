@@ -16,29 +16,27 @@ Ext.define('HanGui.view.execution.ExecutionController', {
             me.loadExecutions();
         }
 
-        var socket  = new SockJS('/websocket');
-        var stompClient = Stomp.over(socket);
-        stompClient.debug = function(str) {
-        };
+        var socket  = new WebSocket(HanGui.common.Definitions.wsPrefix + '/execution');
 
-        stompClient.connect({}, function(frame) {
+        socket.onopen = function(event) {
             console.log('WS execution connected');
             wsStatusField.update('WS connected');
             wsStatusField.addCls('han-connected');
+        };
 
-            stompClient.subscribe('/topic/execution', function(message) {
-                if (message.body.startsWith('reloadRequest')) {
-                    executions.reload();
-                }
-            });
+        socket.onmessage = function(event) {
+            if (event.data.startsWith('reloadRequest')) {
+                executions.reload();
+            }
+        };
 
-        }, function() {
+        socket.onclose = function(event) {
             console.log('WS execution disconnected');
 
             wsStatusField.update('WS disconnected');
             wsStatusField.removeCls('han-connected');
             wsStatusField.addCls('han-disconnected');
-        });
+        };
     },
 
     loadExecutions: function() {

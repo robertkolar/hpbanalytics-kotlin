@@ -2,7 +2,7 @@ package com.highpowerbear.hpbanalytics.service
 
 import com.highpowerbear.hpbanalytics.common.HanUtil
 import com.highpowerbear.hpbanalytics.config.HanSettings
-import com.highpowerbear.hpbanalytics.config.WsTopic
+import com.highpowerbear.hpbanalytics.config.WsEndpoint
 import com.highpowerbear.hpbanalytics.database.DataFilters
 import com.highpowerbear.hpbanalytics.database.Execution
 import com.highpowerbear.hpbanalytics.database.Trade
@@ -69,7 +69,7 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
             val statisticsList = calculate(trades, interval)
             statisticsMap[helper.statisticsKey(interval, tradeType, secType, currency, underlying)] = statisticsList
             log.info("END statistics calculation for interval=" + interval + ", included " + trades.size + " trades")
-            messageService.sendWsReloadRequestMessage(WsTopic.STATISTICS)
+            messageService.sendWsReloadRequestMessage(WsEndpoint.STATISTICS)
         }
     }
 
@@ -90,7 +90,7 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
         currentStatisticsMap[helper.statisticsKey(null, tradeType, secType, currency, underlying)] = java.util.List.of(daily, monthly, yearly)
         log.info("END current statistics calculation, included " + trades.size + " trades")
         if (reload) {
-            messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS)
+            messageService.sendWsReloadRequestMessage(WsEndpoint.CURRENT_STATISTICS)
         }
     }
 
@@ -102,7 +102,7 @@ class StatisticsService @Autowired constructor(private val tradeRepository: Trad
             listOf(all, secType).forEach { st: String ->
                 listOf(all, undl).forEach { u: String? -> calculateCurrentStatistics(all, st, all, u, false) }
             }
-            messageService.sendWsReloadRequestMessage(WsTopic.CURRENT_STATISTICS)
+            messageService.sendWsReloadRequestMessage(WsEndpoint.CURRENT_STATISTICS)
         }
     }
 

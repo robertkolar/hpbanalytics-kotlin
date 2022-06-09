@@ -28,3 +28,5 @@ application:
   underlyings-permanent:
     - ES
     - MES
+    - RTY
+    - MRUT

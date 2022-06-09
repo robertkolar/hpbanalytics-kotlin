@@ -24,30 +24,28 @@ Ext.define('HanGui.view.trade.TradeController', {
             me.refreshTradeStatistics();
         }
 
-        var socket  = new SockJS('/websocket');
-        var stompClient = Stomp.over(socket);
-        stompClient.debug = function(str) {
-        };
+        var socket  = new WebSocket(HanGui.common.Definitions.wsPrefix + '/trade');
 
-        stompClient.connect({}, function(frame) {
+        socket.onopen = function(event) {
             console.log('WS trade connected');
             wsStatusField.update('WS connected');
             wsStatusField.addCls('han-connected');
+        };
 
-            stompClient.subscribe('/topic/trade', function(message) {
-                if (message.body.startsWith('reloadRequest')) {
-                    trades.reload();
-                    me.refreshTradeStatistics();
-                }
-            });
+        socket.onmessage = function(event) {
+            if (event.data.startsWith('reloadRequest')) {
+                trades.reload();
+                me.refreshTradeStatistics();
+            }
+        };
 
-        }, function() {
+        socket.onclose = function(event) {
             console.log('WS trade disconnected');
 
             wsStatusField.update('WS disconnected');
             wsStatusField.removeCls('han-connected');
             wsStatusField.addCls('han-disconnected');
-        });
+        };
     },
 
     loadTrades: function() {
