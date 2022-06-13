@@ -18,14 +18,14 @@ class ReactiveWebSocketHandler @Autowired constructor(private val websocketSessi
 
     override fun handle(session: WebSocketSession): Mono<Void> {
         val endpoint = session.handshakeInfo.uri.path.replace(".*/".toRegex(), "")
-        log.info("opened " + endpoint + "/" + session.id)
+        log.info("opened ws " + endpoint + "/" + session.id)
         websocketSessionsMap[endpoint]?.add(session)
 
         return session.receive()
-            .doOnNext { message: WebSocketMessage -> log.info("received message for " + endpoint + "/" + session.id + ", message=" + message.payloadAsText) }
+            .doOnNext { message: WebSocketMessage -> log.info("received ws message for " + endpoint + "/" + session.id + ", message=" + message.payloadAsText) }
             .doFinally { sig: SignalType ->
                 websocketSessionsMap[endpoint]?.remove(session)
-                log.info("received " + sig + " for " + endpoint + "/" + session.id + ", sessions=" + websocketSessionsMap[endpoint]?.size)
+                log.info("received ws " + sig + " for " + endpoint + "/" + session.id + ", sessions=" + websocketSessionsMap[endpoint]?.size)
             }
             .then()
     }

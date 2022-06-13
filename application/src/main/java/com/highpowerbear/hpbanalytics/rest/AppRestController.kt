@@ -205,8 +205,8 @@ class AppRestController @Autowired constructor(
     }
 
     @RequestMapping("statistics/ifi/years")
-    fun ifiYears(): IntRange {
-        return taxReportService.ifiYears
+    fun ifiYears(): List<Int> {
+        return taxReportService.ifiYears.toList()
     }
 
     @RequestMapping("statistics/ifi/csv")
