@@ -15,7 +15,8 @@ import java.math.RoundingMode
  * Created by robertk on 12/25/2017.
  */
 @Service
-class TradeCalculationService @Autowired constructor(private val exchangeRateService: ExchangeRateService) {
+class TradeCalculationService @Autowired constructor(
+    private val exchangeRateService: ExchangeRateService) {
 
     fun calculateFields(trade: Trade) {
         val firstExecution = trade.executions[0]

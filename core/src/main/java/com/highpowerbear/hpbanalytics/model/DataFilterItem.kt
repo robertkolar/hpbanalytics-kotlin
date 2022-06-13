@@ -9,12 +9,12 @@ import java.util.function.Consumer
  * Created by robertk on 10/4/2020.
  */
 class DataFilterItem {
-    val property: String? = null
-    val operator: String? = null
+    var property: String? = null
+    var operator: String? = null
     var value: String? = null
     var doubleValue: Double? = null
-
     private val values: MutableList<String> = ArrayList()
+
     @JsonSetter("value")
     fun setValueNode(valueNode: JsonNode) {
         if (valueNode.isTextual) {

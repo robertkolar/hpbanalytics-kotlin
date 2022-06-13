@@ -8,4 +8,8 @@ class TradeStatistics {
     var numAllUnderlyings: Long = 0
     var numOpenTrades: Long = 0
     var numOpenUnderlyings: Long = 0
+
+    override fun toString(): String {
+        return "TradeStatistics(numAllTrades=$numAllTrades, numAllUnderlyings=$numAllUnderlyings, numOpenTrades=$numOpenTrades, numOpenUnderlyings=$numOpenUnderlyings)"
+    }
 }

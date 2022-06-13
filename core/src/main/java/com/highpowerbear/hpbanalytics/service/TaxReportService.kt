@@ -24,9 +24,11 @@ import java.util.*
  * Created by robertk on 10/10/2016.
  */
 @Service
-class TaxReportService @Autowired constructor(private val exchangeRateService: ExchangeRateService,
-                                              private val tradeRepository: TradeRepository,
-                                              private val tradeCalculationService: TradeCalculationService) {
+class TaxReportService @Autowired constructor(
+    private val exchangeRateService: ExchangeRateService,
+    private val tradeRepository: TradeRepository,
+    private val tradeCalculationService: TradeCalculationService) {
+
     private val NL = "\n"
     private val DL = ","
     private val acquireType = "A - nakup"
@@ -34,7 +36,6 @@ class TaxReportService @Autowired constructor(private val exchangeRateService: E
     private val tradeTypeMap: MutableMap<TradeType, String> = EnumMap(TradeType::class.java)
     private val dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy")
     private val nf = NumberFormat.getInstance(Locale.US)
-    val ifiYears: IntRange = HanSettings.IFI_START_YEAR..LocalDate.now().year
 
     init {
         setup()

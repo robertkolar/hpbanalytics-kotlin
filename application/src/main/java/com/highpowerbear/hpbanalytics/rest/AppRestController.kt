@@ -204,11 +204,6 @@ class AppRestController @Autowired constructor(
         return GenericList(statistics, statistics.size)
     }
 
-    @RequestMapping("statistics/ifi/years")
-    fun ifiYears(): List<Int> {
-        return taxReportService.ifiYears.toList()
-    }
-
     @RequestMapping("statistics/ifi/csv")
     fun getIfiCsv(
         @RequestParam("year") year: Int,

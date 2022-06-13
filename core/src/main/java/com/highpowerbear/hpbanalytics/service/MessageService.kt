@@ -10,7 +10,8 @@ import reactor.core.publisher.Mono
  * Created by robertk on 12/27/2017.
  */
 @Service
-class MessageService @Autowired constructor(private val websocketSessionsMap: Map<String, List<WebSocketSession>>) {
+class MessageService @Autowired constructor(
+    private val websocketSessionsMap: Map<String, List<WebSocketSession>>) {
 
     fun sendWsReloadRequestMessage(endpoint: String) {
         sendWsMessage(endpoint, HanSettings.WS_RELOAD_REQUEST_MESSAGE)

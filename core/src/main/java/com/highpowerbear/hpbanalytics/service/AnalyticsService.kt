@@ -21,12 +21,13 @@ import java.util.function.Consumer
  * Created by robertk on 4/26/2015.
  */
 @Service
-open class AnalyticsService @Autowired constructor(private val executionRepository: ExecutionRepository,
-                                              private val tradeRepository: TradeRepository,
-                                              private val tradeCalculationService: TradeCalculationService,
-                                              private val messageService: MessageService) {
-    val tradeStatistics = TradeStatistics()
+open class AnalyticsService @Autowired constructor(
+    private val executionRepository: ExecutionRepository,
+    private val tradeRepository: TradeRepository,
+    private val tradeCalculationService: TradeCalculationService,
+    private val messageService: MessageService) {
 
+    open var tradeStatistics: TradeStatistics = TradeStatistics() // must be open because of spring injection
     init {
         updateTradeStatistics()
     }

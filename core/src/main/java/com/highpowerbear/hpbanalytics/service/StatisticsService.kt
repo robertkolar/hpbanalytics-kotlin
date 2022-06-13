@@ -27,13 +27,14 @@ import java.util.concurrent.ScheduledExecutorService
  * Created by robertk on 4/26/2015.
  */
 @Service
-class StatisticsService @Autowired constructor(private val tradeRepository: TradeRepository,
-                                               private val messageService: MessageService,
-                                               private val tradeCalculationService: TradeCalculationService,
-                                               private val helper: StatisticsHelper,
-                                               private val executorService: ScheduledExecutorService,
-                                               private val statisticsMap: MutableMap<String, List<Statistics>>,
-                                               private val currentStatisticsMap: MutableMap<String, List<Statistics>>) {
+class StatisticsService @Autowired constructor(
+    private val tradeRepository: TradeRepository,
+    private val messageService: MessageService,
+    private val tradeCalculationService: TradeCalculationService,
+    private val helper: StatisticsHelper,
+    private val executorService: ScheduledExecutorService,
+    private val statisticsMap: MutableMap<String, List<Statistics>>,
+    private val currentStatisticsMap: MutableMap<String, List<Statistics>>) {
 
     fun getStatistics(interval: ChronoUnit?, tradeType: String?, secType: String?, currency: String?, underlying: String?, maxPoints: Int?): MutableList<Statistics> {
         val maxPointsMod: Int

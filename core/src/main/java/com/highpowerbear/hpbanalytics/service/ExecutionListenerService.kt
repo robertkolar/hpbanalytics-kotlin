@@ -17,13 +17,14 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Created by robertk on 10/23/2020.
  */
 @Service
-class ExecutionListenerService @Autowired constructor(private val executionMapper: ExecutionMapper,
-                                                      private val analyticsService: AnalyticsService,
-                                                      private val statisticsService: StatisticsService,
-                                                      private val executionQueue: BlockingQueue<ExecutionDTO>,
-                                                      private val executorService: ScheduledExecutorService) : InitializingService {
-    private val hazelcastConsumerRunning = AtomicBoolean(true)
+class ExecutionListenerService @Autowired constructor(
+    private val executionMapper: ExecutionMapper,
+    private val analyticsService: AnalyticsService,
+    private val statisticsService: StatisticsService,
+    private val executionQueue: BlockingQueue<ExecutionDTO>,
+    private val executorService: ScheduledExecutorService) : InitializingService {
 
+    private val hazelcastConsumerRunning = AtomicBoolean(true)
     init {
         Runtime.getRuntime().addShutdownHook(Thread { shutdown() }) // shutdown hook
     }

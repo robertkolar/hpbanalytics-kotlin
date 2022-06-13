@@ -186,31 +186,23 @@ Ext.define('HanGui.view.statistics.StatisticsController', {
             ifiYearCombo =  me.lookupReference('ifiYearCombo'),
             ifiEndMonthCombo =  me.lookupReference('ifiEndMonthCombo');
 
-        Ext.Ajax.request({
-            method: 'GET',
-            url: HanGui.common.Definitions.urlPrefix + '/statistics/ifi/years',
-
-            success: function(response, opts) {
-                // years
-                var ifiYears = Ext.decode(response.responseText);
-                var ifiYearsData = [];
-                for (var i = 0; i < ifiYears.length; i++) {
-                    ifiYearsData.push([ifiYears[i]]);
-                }
-                ifiYearCombo.getStore().loadData(ifiYearsData);
-                var defaultYear = ifiYearCombo.getStore().getAt(ifiYearsData.length - 1);
-                ifiYearCombo.setValue(defaultYear);
-
-                // months
-                var ifiEndMonthsData = [];
-                for (var m = 1; m <= 12; m++) {
-                    ifiEndMonthsData.push([m]);
-                }
-                ifiEndMonthCombo.getStore().loadData(ifiEndMonthsData);
-                var defaultEndMonth = ifiEndMonthCombo.getStore().getAt(ifiEndMonthsData.length - 1);
-                ifiEndMonthCombo.setValue(defaultEndMonth);
+            // years
+            var ifiYearsData = [];
+            var currentYear = new Date().getFullYear();
+            for (var y = 2016; y <= currentYear; y++) {
+                ifiYearsData.push([y]);
             }
-        });
+            ifiYearCombo.getStore().loadData(ifiYearsData);
+            ifiYearCombo.setValue(currentYear);
+
+            // months
+            var ifiEndMonthsData = [];
+            for (var m = 1; m <= 12; m++) {
+                ifiEndMonthsData.push([m]);
+            }
+            ifiEndMonthCombo.getStore().loadData(ifiEndMonthsData);
+            var defaultEndMonth = ifiEndMonthCombo.getStore().getAt(ifiEndMonthsData.length - 1);
+            ifiEndMonthCombo.setValue(defaultEndMonth);
     },
 
     onCalculateCurrentStatistics: function(button, evt) {

@@ -7,7 +7,6 @@ import com.highpowerbear.hpbanalytics.enums.Currency
  */
 object HanSettings {
     const val SCHEDULED_THREAD_POOL_SIZE = 10
-    const val IFI_START_YEAR = 2016
     const val DECIMAL_SCALE = 5
     const val NUMBER_OF_FUTURE_EXCHANGE_RATES = 3
     val PORTFOLIO_BASE_CURRENCY = Currency.EUR

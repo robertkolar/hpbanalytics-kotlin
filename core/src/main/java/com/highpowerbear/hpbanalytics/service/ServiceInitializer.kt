@@ -7,7 +7,9 @@ import org.springframework.stereotype.Component
  * Created by robertk on 10/25/2020.
  */
 @Component
-class ServiceInitializer @Autowired constructor(initializingServices: List<InitializingService>) {
+class ServiceInitializer @Autowired constructor(
+    initializingServices: List<InitializingService>) {
+
     init {
         initializingServices.forEach { s -> s.initialize() }
     }
